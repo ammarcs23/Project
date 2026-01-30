@@ -6,7 +6,7 @@ class Navbar extends Component {
       <nav className="navbar navbar-expand-lg bg-body-tertiary">
         <div className="container-fluid">
           <a className="navbar-brand" href="#">
-            Navbar
+           <b>AI Based Hospital Management System</b> 
           </a>
           <button
             className="navbar-toggler"
