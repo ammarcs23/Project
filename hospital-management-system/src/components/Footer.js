@@ -58,7 +58,7 @@ class Footer extends Component {
           className="text-center p-3"
           style={{ backgroundColor: "rgba(0, 0, 0, 0.2)" }}
         >
-          © 2026 Your Company | All rights reserved
+          Developed With Love ❤️ By Ammar Jahangir | © 2026 AI-Based Hospital Management System | All rights reserved
         </div>
       </footer>
     );

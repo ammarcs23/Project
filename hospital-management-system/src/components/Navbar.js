@@ -1,4 +1,5 @@
 import React,{Component} from 'react' ;
+import './Navbar.css';
 class Navbar extends Component {
   state = {};
   render() {
@@ -6,7 +7,7 @@ class Navbar extends Component {
       <nav className="navbar navbar-expand-lg bg-body-tertiary">
         <div className="container-fluid">
           <a className="navbar-brand" href="#">
-           <b>AI Based Hospital Management System</b> 
+           <b><i>AI-Based Hospital Management System</i></b> 
           </a>
           <button
             className="navbar-toggler"
