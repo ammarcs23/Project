@@ -6,9 +6,9 @@ import File_Upload from "./components/File_Upload";
 function App() {
   return (
     <>
-      <Navbar />
-      <File_Upload/>
-      <Footer/>
+       <Navbar/> 
+       <File_Upload/> 
+       <Footer/> 
     </>
   );
 }
