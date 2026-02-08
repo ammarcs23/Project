@@ -1,12 +1,12 @@
 import logo from "./logo.svg";
 import "./App.css";
-import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import NavbarMain from "./components/Navbar/NavbarMain.jsx"
 import File_Upload from "./components/File_Upload";
 function App() {
   return (
     <>
-       <Navbar/> 
+       <NavbarMain/> 
        <File_Upload/> 
        <Footer/> 
     </>
