@@ -12,11 +12,11 @@
 
 .sidebar h2,
 .sidebar h3 {
-  margin: 0;
+  margin: 30;
 }
 
 .sidebar {
-  position: fixed;
+  position: absolute;
   overflow: hidden;
   top: 24px;
   left: 18px;
