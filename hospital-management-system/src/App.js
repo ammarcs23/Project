@@ -1,17 +1,17 @@
-import logo from "./logo.svg";
-import "./App.css";
-import Footer from "./components/Footer";
-import NavbarMain from "./components/Navbar/NavbarMain";
-import File_Upload from "./components/File_Upload";
-import AdminDashboard from "./pages/admin/AdminDashboard";
+import React from "react";
+import { Routes, Route } from "react-router-dom";
 
+// Folder structure ke hisaab se imports
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import Home from "./pages/main/Home";
 
 function App() {
   return (
-    <> 
-       {/* Admin Dashboard show karna */}
-       <AdminDashboard />  
-      
+    <>
+      <Routes>
+        <Route path="/homepage" element={<Home />} />               {/* Home page */}
+        <Route path="/admindashboard" element={<AdminDashboard />} />  {/* Admin page */}
+      </Routes>
     </>
   );
 }

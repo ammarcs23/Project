@@ -1,14 +1,15 @@
 import React from "react";
-import Sidebar from "../../components/Sidebar"; // Sidebar component import
+import Sidebar from "../../components/Sidebar";  // Sidebar component import
 import Footer from "../../components/Footer";
 
 function AdminDashboard() {
   return (
     <div className="admin-dashboard">
-      <Sidebar /> {/* Sidebar component */}
+      <Sidebar />  {/* Sidebar component */}
       <div className="dashboard-content">
-        {/* Yahan dashboard ka main content */}
-        <Footer/>
+        <h1>Admin Dashboard</h1>
+        {/* Yahan admin dashboard ka main content */}
+        <Footer />
       </div>
     </div>
   );
