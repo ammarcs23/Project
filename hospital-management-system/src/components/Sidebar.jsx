@@ -1,107 +1,85 @@
 import "./Sidebar.css";
 import logo from "./logo.svg";
+
 import {
-  AiFillHome,
-  AiOutlineHeart,
-  AiOutlineMessage,
-  AiOutlinePlus,
-  AiOutlineSetting,
-  AiOutlineLink,
-  AiOutlineDashboard,
-  AiOutlineShopping,
+  AiOutlineHome,
   AiOutlineUser,
-  AiOutlineMail,
-  AiOutlinePicture,
-  AiOutlineCluster,
-  AiOutlineDatabase,
-  AiOutlineNumber,
-  AiOutlineDown,
+  AiOutlineTeam,
+  AiOutlineSafetyCertificate,
+  AiOutlineDown
 } from "react-icons/ai";
 
-// Left sidebar icons
-const leftTopItems = [<AiFillHome />, <AiOutlineHeart />, <AiOutlineMessage />, <AiOutlinePlus />];
-const leftBottomItems = [<AiOutlineSetting />, <AiOutlineLink />];
 
-// Navigation items
-const navItems = [
-  { icon: <AiOutlineDashboard />, label: "Dashboard" },
-  { icon: <AiOutlineShopping />, label: "Products" },
-  { icon: <AiOutlineUser />, label: "Customers" },
-  {
-    icon: <AiOutlineMail />,
-    label: "Messages",
-    actionIcon: <AiOutlinePlus />,
-    submenu: [
-      { label: "Drafts", count: 10 },
-      { label: "Scheduled", count: 4 },
-      { label: "Published", count: 20 },
-    ],
-  },
-  { icon: <AiOutlinePicture />, label: "Images" },
-  { icon: <AiOutlineCluster />, label: "Network" },
-  { icon: <AiOutlineDatabase />, label: "Inventory" },
-  { icon: <AiOutlineNumber />, label: "Hashtags" },
+// LEFT SIDEBAR ICONS
+const leftTopItems = [
+  { icon: <AiOutlineHome />, label: "Home" },
+  { icon: <AiOutlineUser />, label: "Doctor" },
+  { icon: <AiOutlineTeam />, label: "Patient" },
+  { icon: <AiOutlineSafetyCertificate />, label: "Admin" }
 ];
 
-// Icon button component
-const IconButton = ({ icon }) => (
-  <button style={{ fontSize: "22px" }}>{icon}</button>
+
+// NAVIGATION ITEMS (RIGHT SIDE)
+const navItems = [
+  { icon: <AiOutlineHome />, label: "Dashboard" },
+  { icon: <AiOutlineUser />, label: "Doctors" },
+  { icon: <AiOutlineTeam />, label: "Patients" },
+  { icon: <AiOutlineSafetyCertificate />, label: "Admin Panel" }
+];
+
+
+// ICON BUTTON
+const IconButton = ({ icon, label }) => (
+  <button title={label}>
+    {icon}
+  </button>
 );
 
-// Left sidebar
+
+// LEFT SIDEBAR
 const LeftSidebar = () => (
   <div className="left">
+
     <img src={logo} alt="Logo" />
 
-    {leftTopItems.map((icon, index) => (
-      <IconButton key={index} icon={icon} />
+    {leftTopItems.map((item, index) => (
+      <IconButton
+        key={index}
+        icon={item.icon}
+        label={item.label}
+      />
     ))}
 
-    <div>
-      {leftBottomItems.map((icon, index) => (
-        <IconButton key={index} icon={icon} />
-      ))}
-    </div>
   </div>
 );
 
-// Sidebar header
+
+// HEADER
 const SidebarHeader = () => (
   <div className="header">
+
     <div>
-      <h2>AI-Based Hospital Management System</h2>
-      <h3>Supervised By Mr. Muhammad Waseem</h3>
+      <h2>AI-Based Hospital System</h2>
+      <h3>Supervised by Mr.Muhammad Waseem</h3>
+      <h3>Admin Dashboard</h3>
     </div>
+
     <AiOutlineDown />
+
   </div>
 );
 
-// Submenu
-const Submenu = ({ items }) => (
-  <ul className="submenu">
-    {items.map((item) => (
-      <li key={item.label}>
-        {item.label}
-        <span className="badge">{item.count}</span>
-      </li>
-    ))}
-  </ul>
-);
 
-// Navigation item
+// NAVIGATION BUTTON
 const NavItem = ({ item }) => (
-  <>
-    <button>
-      {item.icon}
-      <span>{item.label}</span>
-      {item.actionIcon && item.actionIcon}
-    </button>
-
-    {item.submenu && <Submenu items={item.submenu} />}
-  </>
+  <button>
+    {item.icon}
+    <span>{item.label}</span>
+  </button>
 );
 
-// Navigation menu
+
+// NAVIGATION
 const Navigation = () => (
   <nav>
     {navItems.map((item) => (
@@ -110,24 +88,36 @@ const Navigation = () => (
   </nav>
 );
 
-// Right sidebar
+
+// RIGHT SIDEBAR
 const RightSidebar = () => (
   <div className="right">
+
     <div className="right-inner">
+
       <SidebarHeader />
+
       <Navigation />
+
     </div>
+
   </div>
 );
 
-// Main Sidebar component
+
+// MAIN SIDEBAR
 export const Sidebar = () => {
   return (
     <section className="page sidebar-page">
+
       <aside className="sidebar">
+
         <LeftSidebar />
+
         <RightSidebar />
+
       </aside>
+
     </section>
   );
 };
