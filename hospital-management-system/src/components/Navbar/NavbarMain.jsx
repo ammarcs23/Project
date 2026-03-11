@@ -5,14 +5,14 @@ const NavbarMain = () => {
   return (
     <Navbar bg="primary" variant="dark" expand="lg">
       <Container>
-        <Navbar.Brand href="#">HospitalMS</Navbar.Brand>
+        <Navbar.Brand href="#">AI Hospital</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
             <Nav.Link href="#">Home</Nav.Link>
-            <Nav.Link href="#">Patients</Nav.Link>
+            <Nav.Link href="#">Services</Nav.Link>
             <Nav.Link href="#">Doctors</Nav.Link>
-            <Nav.Link href="#">Appointments</Nav.Link>
+            <Nav.Link href="#">Contact Us</Nav.Link>
           </Nav>
           <div>
             <Button variant="light" className="me-2">Login</Button>
