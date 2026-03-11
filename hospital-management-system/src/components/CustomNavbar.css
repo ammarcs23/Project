@@ -1,0 +1,60 @@
+.custom-navbar {
+    background: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.brand {
+    color: black !important;
+}
+
+.hospital-icon {
+    color: #ff3b3b;
+}
+
+.nav-link-custom {
+    color: black !important;
+    font-weight: 500;
+    position: relative;
+    transition: 0.3s;
+}
+
+.nav-link-custom::after {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 2px;
+    background: #0dcaf0;
+    left: 0;
+    bottom: -5px;
+    transition: width 0.3s ease;
+}
+
+.nav-link-custom:hover {
+    color: #0dcaf0 !important;
+}
+
+.nav-link-custom:hover::after {
+    width: 100%;
+}
+
+.login-btn {
+    background: rgb(0, 0, 0);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.login-btn:hover {
+    background: #0dcaf0;
+    color: rgb(0, 0, 0);
+}
+
+.signup-btn {
+    background: #ff3b3b;
+    border: none;
+    color: white;
+    font-weight: 600;
+}
+
+.signup-btn:hover {
+    background: #8d3131;
+}

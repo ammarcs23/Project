@@ -1,8 +1,8 @@
 import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import "./components/CustomNavbar.css";
 import { Container, Navbar, Nav, Button, Row, Col, Card, Carousel, Form } from 'react-bootstrap';
 import {
-    FaUserMd,
     FaHeartbeat,
     FaAmbulance,
     FaPhone,
@@ -21,64 +21,35 @@ import './App.css';
 function App() {
     return (
         <div className="App">
-            {/* Navigation Bar */}
-            <Navbar bg="primary" variant="dark" expand="lg" sticky="top" className="py-3">
+
+            <Navbar expand="lg" sticky="top" className="custom-navbar py-3">
                 <Container>
-                    <Navbar.Brand href="#home" className="fw-bold fs-3">
-                        <FaHospital className="me-2" />
+                    <Navbar.Brand href="#home" className="fw-bold fs-3 brand">
+                        <FaHospital className="me-2 hospital-icon" />
                         MediCare+
                     </Navbar.Brand>
+
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
+
                     <Navbar.Collapse id="basic-navbar-nav">
                         <Nav className="mx-auto">
-                            <Nav.Link href="#home" className="mx-2">Home</Nav.Link>
-                            <Nav.Link href="#services" className="mx-2">Services</Nav.Link>
-                            <Nav.Link href="#about" className="mx-2">About</Nav.Link>
-                            <Nav.Link href="#doctors" className="mx-2">Doctors</Nav.Link>
-                            <Nav.Link href="#contact" className="mx-2">Contact</Nav.Link>
+                            <Nav.Link href="#home" className="nav-link-custom mx-2">Home</Nav.Link>
+                            <Nav.Link href="#services" className="nav-link-custom mx-2">Services</Nav.Link>
+                            <Nav.Link href="#about" className="nav-link-custom mx-2">About</Nav.Link>
+                            <Nav.Link href="#doctors" className="nav-link-custom mx-2">Doctors</Nav.Link>
+                            <Nav.Link href="#contact" className="nav-link-custom mx-2">Contact</Nav.Link>
                         </Nav>
+
                         <div className="d-flex gap-2">
-                            <Button variant="outline-light" href="/login">Login</Button>
-                            <Button variant="light" href="/signup" className="text-primary fw-bold">Sign Up</Button>
+                            <Button className="login-btn">Login</Button>
+                            <Button className="signup-btn">Sign Up</Button>
                         </div>
                     </Navbar.Collapse>
                 </Container>
             </Navbar>
 
-            {/* Hero Section */}
-            <section id="home" className="hero-section" style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                padding: '100px 0'
-            }}>
-                <Container>
-                    <Row className="align-items-center">
-                        <Col lg={6}>
-                            <h1 className="display-3 fw-bold mb-4">
-                                Your Health Is Our <span style={{ color: '#ffd700' }}>Priority</span>
-                            </h1>
-                            <p className="lead mb-4">
-                                We provide world-class healthcare services with experienced doctors
-                                and modern facilities. Your wellbeing is our mission.
-                            </p>
-                            <Button variant="warning" size="lg" href="#appointment" className="me-3">Book Appointment</Button>
-                            <Button variant="outline-light" size="lg" href="#services">Learn More</Button>
-                        </Col>
-                        <Col lg={6}>
-                            <img
-                                src="https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?ixlib=rb-4.0.3&auto=format&fit=crop&w=1191&q=80"
-                                alt="Medical Team"
-                                className="img-fluid rounded-4 shadow-lg"
-                            />
-                        </Col>
-                    </Row>
-                </Container>
-            </section>
-
-            {/* Slider Section */}
             <section className="slider-section py-5 bg-light">
                 <Container>
-                    <h2 className="text-center fw-bold mb-5">Our Facilities</h2>
                     <Carousel fade>
                         <Carousel.Item>
                             <img

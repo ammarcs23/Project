@@ -14,14 +14,14 @@ section {
   padding: 60px 0;
 }
 
-.nav-link {
+/* .nav-link {
   color: white !important;
   font-weight: 500;
 }
 
 .nav-link:hover {
   color: #ffd700 !important;
-}
+} */
 
 .btn {
   transition: all 0.3s ease;
