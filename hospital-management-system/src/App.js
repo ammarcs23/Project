@@ -1,18 +1,15 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
-
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import Home from "./pages/main/Home";
-import Signup1 from "./pages/signin/Signup1";  // <-- Signup import
+import NavbarMain from "./components/Navbar/NavbarMain";
 
 function App() {
   return (
-    <Routes>
-      <Route path="/homepage" element={<Home />} />
-      <Route path="/admindashboard" element={<AdminDashboard />} />
-      <Route path="/signin" element={<Signup1 />} />
-       {/* Signup route */}
-    </Routes>
+    <div>
+      <NavbarMain />
+      <div style={{ padding: "50px", textAlign: "center" }}>
+        <h1>Welcome to Hospital Management System</h1>
+        <p>Start managing patients, doctors, and appointments easily!</p>
+      </div>
+    </div>
   );
 }
 

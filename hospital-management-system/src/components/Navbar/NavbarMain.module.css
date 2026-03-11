@@ -1,0 +1,46 @@
+.navbarCustom {
+    background-color: #0d6efd;
+    /* Bootstrap primary color */
+    padding: 0.8rem 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0 0 10px 10px;
+}
+
+.navLink {
+    color: #fff !important;
+    margin-right: 1rem;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.navLink:hover {
+    color: #dcd7d7 !important;
+    /* Golden hover */
+}
+
+.btnLogin {
+    background-color: #fff;
+    color: #0d6efd;
+    border-radius: 20px;
+    padding: 0.4rem 1.2rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btnLogin:hover {
+    background-color: #e0e0e0;
+    color: #0d6efd;
+}
+
+.btnSignup {
+    background-color: #fd1d0d;
+    color: #fff;
+    border-radius: 20px;
+    padding: 0.4rem 1.2rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btnSignup:hover {
+    background-color: #b64d20;
+}
