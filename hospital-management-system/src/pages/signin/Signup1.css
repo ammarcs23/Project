@@ -1,7 +1,15 @@
+/* :root{
+  --color:red;
+  --background-color:black;
+}
+
+.page{
+  color: var(--color);
+} */
 .page.signup-1-page {
   margin: 0;
   background: #f2f3fe;
-  color: #4b5679;
+  color: #253c85;
   height: 100vh;
   display: grid;
   place-items: center;
@@ -10,7 +18,7 @@
 }
 
 .signup-1-card {
-  --color-primary: #6663e6;
+  --color-primary: #151377;
   position: relative;
   overflow: hidden;
   width: 660px;
