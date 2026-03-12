@@ -23,14 +23,14 @@
     position: absolute;
     width: 0;
     height: 2px;
-    background: #0dcaf0;
+    background: #0b5ed7;
     left: 0;
     bottom: -5px;
     transition: width 0.3s ease;
 }
 
 .nav-link-custom:hover {
-    color: #0dcaf0 !important;
+    color: #0b5ed7 !important;
 }
 
 .nav-link-custom:hover::after {
@@ -44,8 +44,8 @@
 }
 
 .login-btn:hover {
-    background: #0dcaf0;
-    color: rgb(0, 0, 0);
+    background: #0b5ed7;
+    color: rgb(255, 255, 255);
 }
 
 .signup-btn {

@@ -1,7 +1,3 @@
-
-
-
-
 const sliderImages = [
     {
         img: slider1,

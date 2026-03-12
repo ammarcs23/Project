@@ -1,6 +1,7 @@
 import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "./components/CustomNavbar.css";
+import DoctorsSection from './components/DoctorsSection';
 import { Container, Navbar, Nav, Button, Row, Col, Card, Carousel, Form } from 'react-bootstrap';
 import {
     FaHeartbeat,
@@ -91,7 +92,6 @@ function App() {
                 </Container>
             </section>
 
-            {/* Services Section with 3 Cards */}
             <section id="services" className="services-section py-5">
                 <Container>
                     <h2 className="text-center fw-bold mb-5">Our Medical Services</h2>
@@ -104,7 +104,6 @@ function App() {
                                     <Card.Text className="text-muted">
                                         Expert heart care with advanced diagnostic tools and treatments.
                                     </Card.Text>
-                                    <Button variant="outline-primary" className="mt-3">Learn More</Button>
                                 </Card.Body>
                             </Card>
                         </Col>
@@ -116,7 +115,6 @@ function App() {
                                     <Card.Text className="text-muted">
                                         Comprehensive primary care for all ages with preventive care.
                                     </Card.Text>
-                                    <Button variant="outline-success" className="mt-3">Learn More</Button>
                                 </Card.Body>
                             </Card>
                         </Col>
@@ -128,21 +126,13 @@ function App() {
                                     <Card.Text className="text-muted">
                                         24/7 emergency services with rapid response teams.
                                     </Card.Text>
-                                    <Button variant="outline-warning" className="mt-3">Learn More</Button>
                                 </Card.Body>
                             </Card>
                         </Col>
                     </Row>
-                    {/* Services Dropdown */}
-                    <div className="text-center mt-4">
-                        <Button variant="primary" size="lg">
-                            View All Services <span className="ms-2">▼</span>
-                        </Button>
-                    </div>
                 </Container>
             </section>
 
-            {/* About Section */}
             <section id="about" className="about-section py-5 bg-light">
                 <Container>
                     <Row className="align-items-center">
@@ -166,43 +156,12 @@ function App() {
                                     <h5>50K+ Patients</h5>
                                 </Col>
                             </Row>
-                            {/* About Dropdown */}
-                            <Button variant="primary">Read More About Us <span className="ms-2">▼</span></Button>
                         </Col>
                     </Row>
                 </Container>
             </section>
 
-            {/* Doctors Section */}
-            <section id="doctors" className="doctors-section py-5">
-                <Container>
-                    <h2 className="text-center fw-bold mb-5">Our Top Specialists</h2>
-                    <Row>
-                        {[1, 2, 3, 4].map((doctor) => (
-                            <Col lg={3} md={6} className="mb-4" key={doctor}>
-                                <Card className="border-0 shadow-lg hover-card">
-                                    <Card.Img
-                                        variant="top"
-                                        src={`https://randomuser.me/api/portraits/${doctor % 2 === 0 ? 'women' : 'men'}/${doctor + 20}.jpg`}
-                                        style={{ height: '250px', objectFit: 'cover' }}
-                                    />
-                                    <Card.Body className="text-center">
-                                        <Card.Title>Dr. Sarah Johnson</Card.Title>
-                                        <Card.Subtitle className="mb-2 text-primary">Cardiologist</Card.Subtitle>
-                                        <Button variant="outline-primary" size="sm">View Profile</Button>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        ))}
-                    </Row>
-                    {/* Doctors Dropdown */}
-                    <div className="text-center mt-4">
-                        <Button variant="primary" size="lg">
-                            View All Doctors <span className="ms-2">▼</span>
-                        </Button>
-                    </div>
-                </Container>
-            </section>
+            <DoctorsSection />
 
             {/* Contact Section */}
             <section id="contact" className="contact-section py-5 bg-light">
