@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaHeartbeat, FaSignInAlt, FaUserPlus } from 'react-icons/fa';
 import { Container, Row, Col } from 'react-bootstrap';
 import {
     FaFacebookF,
@@ -11,75 +12,176 @@ import {
     FaEnvelope,
     FaClock,
     FaHeart,
-    FaHospital
+    FaHospital,
+    FaAmbulance,
+    FaStethoscope,
+    FaTooth,
+    FaBrain,
+    FaBaby,
+    FaArrowRight
 } from 'react-icons/fa';
+import './Footer.css';
 
 const Footer = () => {
     const currentYear = new Date().getFullYear();
 
+    const quickLinks = [
+        { name: "Home", link: "#home" },
+        { name: "Services", link: "#services" },
+        { name: "About Us", link: "#about" },
+        { name: "Our Doctors", link: "#doctors" },
+        { name: "Contact", link: "#contact" },
+        { name: "Appointments", link: "#" },
+        { name: "Patient Portal", link: "#" }
+    ];
+
+    const services = [
+        { name: "Emergency Care", icon: <FaAmbulance /> },
+        { name: "Cardiology", icon: <FaHeart /> },
+        { name: "Neurology", icon: <FaBrain /> },
+        { name: "Pediatrics", icon: <FaBaby /> },
+        { name: "Dental Care", icon: <FaTooth /> },
+        { name: "General Medicine", icon: <FaStethoscope /> }
+    ];
+
+    const contactInfo = [
+        { icon: <FaMapMarkerAlt />, text: "123 Healthcare Avenue, Medical District, NY 10001" },
+        { icon: <FaPhone />, text: "+1 (800) 123-4567" },
+        { icon: <FaEnvelope />, text: "info@medicare.com" },
+        { icon: <FaClock />, text: "24/7 Emergency Services" }
+    ];
+
+    const socialLinks = [
+        { icon: <FaFacebookF />, link: "#", color: "#1877f2" },
+        { icon: <FaTwitter />, link: "#", color: "#1da1f2" },
+        { icon: <FaInstagram />, link: "#", color: "#e4405f" },
+        { icon: <FaLinkedinIn />, link: "#", color: "#0077b5" },
+        { icon: <FaYoutube />, link: "#", color: "#ff0000" }
+    ];
+
     return (
         <footer className="footer-section">
-            {/* Main Footer */}
+            <div className="footer-bg">
+                <div className="bg-pattern"></div>
+                <div className="bg-glow glow-1"></div>
+                <div className="bg-glow glow-2"></div>
+                <div className="bg-dots"></div>
+                <div className="bg-cross"></div>
+            </div>
+
+            <div className="newsletter-section">
+                <Container>
+                    <div className="newsletter-wrapper">
+                        <Row className="align-items-center">
+                            <Col lg={6}>
+                                <h3 className="newsletter-title">Subscribe to Our Newsletter</h3>
+                                <p className="newsletter-text">
+                                    Get the latest health tips and medical updates directly in your inbox
+                                </p>
+                            </Col>
+                            <Col lg={6}>
+                                <form className="newsletter-form">
+                                    <div className="input-group">
+                                        <input
+                                            type="email"
+                                            placeholder="Enter your email address"
+                                            className="newsletter-input"
+                                        />
+                                        <button type="submit" className="newsletter-btn">
+                                            Subscribe
+                                            <FaArrowRight className="arrow-icon" />
+                                        </button>
+                                    </div>
+                                </form>
+                            </Col>
+                        </Row>
+                    </div>
+                </Container>
+            </div>
+
+            
             <div className="footer-main py-5">
                 <Container>
-                    <Row>
-                        {/* About Column */}
-                        <Col lg={4} md={6} className="mb-4 mb-lg-0">
-                            <div className="footer-brand d-flex align-items-center mb-3">
-                                <FaHospital className="footer-icon me-2" />
-                                <h4 className="mb-0">MediCare+</h4>
+                    <Row className="g-4">
+                        <Col lg={3} md={6}>
+                            <div className="footer-brand">
+                                <div className="brand-text">
+                                    <span className="brand-name">MediCare</span>
+                                    <span className="brand-plus">+</span>
+                                </div>
                             </div>
                             <p className="footer-about">
                                 Providing quality healthcare services with compassion and excellence.
-                                Your health and well-being are our top priorities.
+                                Your health and well-being are our top priorities since 1998.
                             </p>
-                            <div className="social-links mt-4">
-                                <a href="#" className="social-link"><FaFacebookF /></a>
-                                <a href="#" className="social-link"><FaTwitter /></a>
-                                <a href="#" className="social-link"><FaInstagram /></a>
-                                <a href="#" className="social-link"><FaLinkedinIn /></a>
-                                <a href="#" className="social-link"><FaYoutube /></a>
+
+                            <div className="trust-badge">
+                                <span className="badge-text">NABH Accredited</span>
+                                <span className="badge-year">25+ Years</span>
+                            </div>
+
+                            <div className="social-links">
+                                {socialLinks.map((social, index) => (
+                                    <a
+                                        key={index}
+                                        href={social.link}
+                                        className="social-link"
+                                        style={{ '--social-color': social.color }}
+                                    >
+                                        {social.icon}
+                                    </a>
+                                ))}
                             </div>
                         </Col>
 
-                        {/* Quick Links */}
-                        <Col lg={2} md={6} className="mb-4 mb-lg-0">
+                        <Col lg={3} md={6}>
                             <h5 className="footer-title">Quick Links</h5>
                             <ul className="footer-links">
-                                <li><a href="#home">Home</a></li>
-                                <li><a href="#services">Services</a></li>
-                                <li><a href="#about">About Us</a></li>
-                                <li><a href="#doctors">Our Doctors</a></li>
-                                <li><a href="#contact">Contact</a></li>
+                                {quickLinks.map((link, index) => (
+                                    <li key={index}>
+                                        <a href={link.link}>
+                                            <FaArrowRight className="link-icon" />
+                                            {link.name}
+                                        </a>
+                                    </li>
+                                ))}
                             </ul>
                         </Col>
 
-                        {/* Services Links */}
-                        <Col lg={2} md={6} className="mb-4 mb-lg-0">
+                        <Col lg={3} md={6}>
                             <h5 className="footer-title">Our Services</h5>
-                            <ul className="footer-links">
-                                <li><a href="#">Emergency Care</a></li>
-                                <li><a href="#">Cardiology</a></li>
-                                <li><a href="#">Neurology</a></li>
-                                <li><a href="#">Pediatrics</a></li>
-                                <li><a href="#">Orthopedics</a></li>
-                            </ul>
+                            <div className="services-grid">
+                                {services.map((service, index) => (
+                                    <a key={index} href="#" className="service-item">
+                                        <span className="service-icon">{service.icon}</span>
+                                        <span className="service-name">{service.name}</span>
+                                    </a>
+                                ))}
+                            </div>
                         </Col>
+
                     </Row>
                 </Container>
             </div>
 
-            <div className="footer-bottom py-3">
+            <div className="footer-bottom">
                 <Container>
                     <Row className="align-items-center">
-                        <Col md={6} className="text-center text-md-start mb-2 mb-md-0">
-                            <p className="mb-0">
-                                © {currentYear} MediCare+. All rights reserved.
+                        <Col md={6} className="text-center text-md-start">
+                            <p className="copyright">
+                                © {currentYear} <span className="brand-highlight">MediCare+</span>. All rights reserved.
                             </p>
                         </Col>
                         <Col md={6} className="text-center text-md-end">
-                            <p className="mb-0">
-                                Made with <FaHeart className="text-danger mx-1" /> for better healthcare
+                            <div className="footer-bottom-links">
+                                <a href="#">Privacy Policy</a>
+                                <span className="separator">•</span>
+                                <a href="#">Terms of Use</a>
+                                <span className="separator">•</span>
+                                <a href="#">Sitemap</a>
+                            </div>
+                            <p className="made-with">
+                                Made with <FaHeart className="heart-icon" /> for better healthcare
                             </p>
                         </Col>
                     </Row>

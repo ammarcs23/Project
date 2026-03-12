@@ -1,0 +1,321 @@
+    ImageSlider.css */ .slider-section {
+        width: 100%;
+        overflow: hidden;
+        background: #000;
+    }
+
+    .modern-carousel {
+        position: relative;
+    }
+
+    .slide-container {
+        position: relative;
+        width: 100%;
+        height: 90vh;
+        min-height: 600px;
+        max-height: 800px;
+    }
+
+    .image-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    .image-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .overlay-gradient {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to right,
+                rgba(0, 0, 0, 0.9) 0%,
+                rgba(0, 0, 0, 0.7) 30%,
+                rgba(0, 0, 0, 0.4) 60%,
+                rgba(0, 0, 0, 0.1) 100%);
+    }
+
+    .content-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        z-index: 10;
+    }
+
+    .modern-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 3rem;
+        border-radius: 24px;
+        max-width: 700px;
+        animation: fadeInUp 0.8s ease forwards;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .badge-wrapper {
+        margin-bottom: 1.5rem;
+    }
+
+    .facility-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 100px;
+        color: #fff !important;
+        font-size: 0.875rem;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background: #3b82f6;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 2s infinite;
+    }
+
+    .slide-title {
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        font-weight: 700;
+        line-height: 1.2;
+        color: #fff !important;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.02em;
+    }
+
+    .slide-description {
+        font-size: 1.125rem;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.7) !important;
+        margin-bottom: 2rem;
+        max-width: 500px;
+    }
+
+    FIXED STATS SECTION */ .stats-container {
+        display: flex;
+        gap: 2rem;
+        margin-bottom: 2.5rem;
+        flex-wrap: wrap;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .stat-line {
+        width: 40px;
+        height: 2px;
+        background: #3b82f6;
+        border-radius: 2px;
+    }
+
+    .stat-item span {
+        color: white !important;
+        font-weight: 600;
+        font-size: 1rem;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        background: rgba(0, 0, 0, 0.2);
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    .cta-section {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-primary-modern {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 32px;
+        background: #3b82f6;
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-primary-modern:hover {
+        background: #2563eb;
+        transform: translateY(-2px);
+        box-shadow: 0 20px 30px -10px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-primary-modern:hover .arrow-icon {
+        transform: translateX(5px);
+    }
+
+    .arrow-icon {
+        width: 18px;
+        height: 18px;
+        transition: transform 0.3s ease;
+    }
+
+    .emergency-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: rgba(255, 255, 255, 0.6) !important;
+        font-size: 0.875rem;
+    }
+
+    .emergency-dot {
+        width: 6px;
+        height: 6px;
+        background: #ef4444;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 2s infinite;
+    }
+
+    Custom Carousel Controls */ .modern-control {
+        width: 48px;
+        height: 48px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-size: 40%;
+        transition: all 0.3s ease;
+    }
+
+    .modern-control:hover {
+        background: rgba(59, 130, 246, 0.5);
+        border-color: #3b82f6;
+        transform: scale(1.1);
+    }
+
+    Carousel Indicators */ .carousel-indicators {
+        gap: 8px;
+        margin-bottom: 2rem;
+    }
+
+    .carousel-indicators button {
+        width: 40px;
+        height: 4px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.3) !important;
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .carousel-indicators button.active {
+        background: #3b82f6 !important;
+        width: 60px;
+    }
+
+     @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes pulse {
+        0% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: 0.5;
+            transform: scale(1.2);
+        }
+
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @media (max-width: 991px) {
+        .modern-card {
+            padding: 2rem;
+            max-width: 600px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .slide-container {
+            min-height: 500px;
+        }
+
+        .modern-card {
+            padding: 1.5rem;
+            border-radius: 16px;
+        }
+
+        .stats-container {
+            gap: 1rem;
+        }
+
+        .stat-item {
+            width: 100%;
+        }
+
+        .cta-section {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .btn-primary-modern {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .carousel-control-prev,
+        .carousel-control-next {
+            display: none;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .modern-card {
+            padding: 1.25rem;
+        }
+
+        .slide-title {
+            font-size: 2rem;
+        }
+
+        .slide-description {
+            font-size: 1rem;
+        }
+
+        .carousel-indicators {
+            margin-bottom: 1rem;
+        }
+    }

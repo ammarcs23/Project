@@ -1,5 +1,8 @@
 import React from 'react';
-import { Container, Row, Col, Card, Button } from 'react-bootstrap';
+import { Container, Row, Col } from 'react-bootstrap';
+import { FaCalendarCheck } from 'react-icons/fa';
+import './DoctorsSection.css';
+
 
 import doctorSarah from '../assets/Doctor_1.png';
 import doctorMichael from '../assets/Doctor_2.png';
@@ -35,28 +38,59 @@ const DoctorsSection = () => {
     ];
 
     return (
-        <section id="doctors" className="doctors-section py-5">
+        <section id="doctors" className="doctors-section">
+            
+            <div className="doctors-bg">
+                <div className="bg-pattern"></div>
+                <div className="bg-glow glow-1"></div>
+                <div className="bg-glow glow-2"></div>
+            </div>
+
             <Container>
-                <h2 className="text-center fw-bold mb-5">Our Top Specialists</h2>
-                <Row>
+                <div className="section-header text-center">
+                    <span className="section-subtitle">Our Medical Team</span>
+                    <h2 className="section-title">
+                        Meet Our <span className="text-gradient">Specialists</span>
+                    </h2>
+                    <p className="section-description">
+                        Expert doctors dedicated to providing you with the best healthcare experience
+                    </p>
+                </div>
+
+                
+                <Row className="g-4">
                     {doctors.map((doctor) => (
-                        <Col lg={3} md={6} className="mb-4" key={doctor.id}>
-                            <Card className="border-0 shadow-lg hover-card">
-                                <Card.Img
-                                    variant="top"
-                                    src={doctor.image}
-                                    style={{ height: '250px', objectFit: 'cover' }}
-                                    alt={doctor.name}
-                                />
-                                <Card.Body className="text-center">
-                                    <Card.Title>{doctor.name}</Card.Title>
-                                    <Card.Subtitle className="mb-2 text-primary">{doctor.specialty}</Card.Subtitle>
-                                    <Button variant="primary" size="sm">Book Appointment </Button>
-                                </Card.Body>
-                            </Card>
+                        <Col lg={3} md={6} key={doctor.id}>
+                            <div className="doctor-card">
+                                <div className="card-inner">
+                                    
+                                    <div className="doctor-image-wrapper">
+                                        <img
+                                            src={doctor.image}
+                                            alt={doctor.name}
+                                            className="doctor-image"
+                                        />
+                                        <div className="image-overlay"></div>
+                                    </div>
+
+                                    
+                                    <div className="doctor-info">
+                                        <h3 className="doctor-name">{doctor.name}</h3>
+                                        <p className="doctor-specialty">{doctor.specialty}</p>
+
+                                        
+                                        <button className="appointment-btn">
+                                            <FaCalendarCheck className="btn-icon" />
+                                            Book Appointment
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </Col>
                     ))}
                 </Row>
+
+
             </Container>
         </section>
     );

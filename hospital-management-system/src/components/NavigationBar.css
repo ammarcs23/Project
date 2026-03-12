@@ -1,4 +1,4 @@
-.custom-navbar {
+    NavigationBar.css */ .custom-navbar {
         background: transparent;
         padding: 20px 0;
         transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -6,19 +6,21 @@
     }
 
     .navbar-scrolled {
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.98);
         backdrop-filter: blur(10px);
         padding: 12px 0;
         box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
         border-bottom: 1px solid rgba(59, 130, 246, 0.1);
     }
 
-    .brand {
+    Brand Styles */ .brand {
         display: flex;
         align-items: center;
         gap: 12px;
         text-decoration: none;
         position: relative;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     .brand-icon-wrapper {
@@ -75,7 +77,7 @@
         animation: float 3s ease-in-out infinite;
     }
 
-    .nav-links {
+    Navigation Links */ .nav-links {
         gap: 8px;
     }
 
@@ -86,6 +88,7 @@
         color: #1e293b !important;
         transition: all 0.3s ease;
         overflow: hidden;
+        background: transparent !important;
     }
 
     .navbar-scrolled .nav-link-custom {
@@ -126,7 +129,7 @@
         opacity: 1;
     }
 
-    .auth-buttons {
+    Auth Buttons */ .auth-buttons {
         display: flex;
         align-items: center;
         gap: 12px;
@@ -136,7 +139,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 10px 20px;
+        padding: 10px 24px;
         border: none;
         border-radius: 12px;
         font-weight: 600;
@@ -174,6 +177,7 @@
     .login-btn:hover {
         border-color: #3b82f6;
         transform: translateY(-2px);
+        background: rgba(59, 130, 246, 0.05);
     }
 
     .signup-btn {
@@ -191,7 +195,7 @@
         width: 45px;
         height: 45px;
         border: none;
-        border-radius: 50%;
+        border-radius: 12px;
         background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
         color: #475569;
         display: flex;
@@ -206,19 +210,23 @@
     .profile-btn:hover {
         background: linear-gradient(135deg, #3b82f6, #2563eb);
         color: white;
-        transform: scale(1.1);
+        transform: scale(1.05);
         box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
     }
 
     .profile-icon {
         font-size: 1.2rem;
+        position: relative;
+        z-index: 2;
     }
 
     .btn-icon {
         font-size: 0.9rem;
+        position: relative;
+        z-index: 2;
     }
 
-   .hamburger {
+    Hamburger Menu */ .hamburger {
         width: 30px;
         height: 20px;
         position: relative;
@@ -266,7 +274,7 @@
         top: 8px;
     }
 
-     @keyframes heartbeat {
+    @keyframes heartbeat {
 
         0%,
         100% {
@@ -319,11 +327,19 @@
         }
     }
 
-    @media (max-width: 991px) {
+     @media (max-width: 991px) {
         .custom-navbar {
             background: white;
             padding: 15px 0;
             box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .navbar-collapse {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            margin-top: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
 
         .nav-links {
@@ -334,6 +350,7 @@
         .nav-link-custom {
             text-align: center;
             font-size: 1.1rem;
+            padding: 12px !important;
         }
 
         .nav-link-indicator {
@@ -342,8 +359,9 @@
 
         .auth-buttons {
             flex-direction: column;
-            padding: 20px 0;
+            padding: 20px 0 0;
             border-top: 1px solid #e2e8f0;
+            width: 100%;
         }
 
         .auth-btn {
@@ -357,12 +375,16 @@
     }
 
     @media (max-width: 576px) {
+        .brand-text {
+            font-size: 1.3rem;
+        }
+
         .brand-name {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
         }
 
         .brand-plus {
-            font-size: 1.6rem;
+            font-size: 1.8rem;
         }
 
         .brand-icon-wrapper {
@@ -372,5 +394,10 @@
 
         .brand-icon {
             font-size: 1.6rem;
+        }
+
+        .auth-btn {
+            padding: 10px 20px;
+            font-size: 0.9rem;
         }
     }
