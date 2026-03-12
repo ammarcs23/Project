@@ -85,8 +85,8 @@
   right: 64px;
 }
 
-.signup-1-card .card-bg.login ~ .logo-1,
-.signup-1-card .card-bg.register ~ .logo-2 {
+.signup-1-card .card-bg.login~.logo-1,
+.signup-1-card .card-bg.register~.logo-2 {
   opacity: 1;
   translate: 0;
   transition: 0.3s 1.05s;
@@ -189,18 +189,20 @@
   font-size: 14px;
 }
 
-/* Animations (Global definitions - prefixes not applied to @keyframe names) */
-@keyframes card-bg-register {
+Animations (Global definitions - prefixes not applied to @keyframe names) */ @keyframes card-bg-register {
   0% {
     rotate: -45deg;
   }
+
   50% {
     opacity: 1;
   }
+
   50%,
   100% {
     rotate: 0deg;
   }
+
   50.01%,
   100% {
     opacity: 0;
@@ -212,33 +214,40 @@
     opacity: 0;
     rotate: 0deg;
   }
+
   50% {
     rotate: 0deg;
     opacity: 0;
   }
+
   50%,
   100% {
     rotate: 0;
   }
+
   50.01%,
   100% {
     opacity: 1;
   }
+
   100% {
     rotate: -45deg;
   }
 }
 
 @keyframes card-bg-2-register {
+
   0%,
   50% {
     rotate: 0;
     opacity: 0;
   }
+
   50.01% {
     opacity: 1;
     rotate: 0deg;
   }
+
   100% {
     opacity: 1;
     rotate: 45deg;
@@ -250,11 +259,13 @@
     rotate: 45deg;
     opacity: 1;
   }
+
   50%,
   100% {
     rotate: 0deg;
     opacity: 1;
   }
+
   50.01%,
   100% {
     opacity: 0;
