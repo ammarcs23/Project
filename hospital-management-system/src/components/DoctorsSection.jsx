@@ -51,17 +51,12 @@ const DoctorsSection = () => {
                                 <Card.Body className="text-center">
                                     <Card.Title>{doctor.name}</Card.Title>
                                     <Card.Subtitle className="mb-2 text-primary">{doctor.specialty}</Card.Subtitle>
-                                    <Button variant="outline-primary" size="sm">View Profile</Button>
+                                    <Button variant="primary" size="sm">Book Appointment </Button>
                                 </Card.Body>
                             </Card>
                         </Col>
                     ))}
                 </Row>
-                <div className="text-center mt-4">
-                    <Button variant="primary" size="lg">
-                        View All Doctors <span className="ms-2">▼</span>
-                    </Button>
-                </div>
             </Container>
         </section>
     );

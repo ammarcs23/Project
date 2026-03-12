@@ -1,7 +1,9 @@
 import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "./components/CustomNavbar.css";
+import ContactSection from './components/ContactSection';
 import DoctorsSection from './components/DoctorsSection';
+import Footer from './components/Footer';
 import { Container, Navbar, Nav, Button, Row, Col, Card, Carousel, Form } from 'react-bootstrap';
 import {
     FaHeartbeat,
@@ -163,72 +165,11 @@ function App() {
 
             <DoctorsSection />
 
-            {/* Contact Section */}
-            <section id="contact" className="contact-section py-5 bg-light">
-                <Container>
-                    <h2 className="text-center fw-bold mb-5">Contact Us</h2>
-                    <Row>
-                        <Col lg={4} className="mb-4">
-                            <Card className="border-0 shadow-lg h-100">
-                                <Card.Body>
-                                    <h4>Get in Touch</h4>
-                                    <p><FaMapMarkerAlt className="me-2" /> 123 Healthcare Ave, NY</p>
-                                    <p><FaPhone className="me-2 text-danger" /> Emergency: +1 (800) 123-4567</p>
-                                    <p><FaEnvelope className="me-2" /> info@medicareplus.com</p>
-                                    <p><FaClock className="me-2" /> 24/7 Available</p>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                        <Col lg={8}>
-                            <Card className="border-0 shadow-lg">
-                                <Card.Body>
-                                    <h4>Send Message</h4>
-                                    <Form>
-                                        <Row>
-                                            <Col md={6}>
-                                                <Form.Control type="text" placeholder="Your Name" className="mb-3" />
-                                            </Col>
-                                            <Col md={6}>
-                                                <Form.Control type="email" placeholder="Your Email" className="mb-3" />
-                                            </Col>
-                                        </Row>
-                                        <Form.Control type="text" placeholder="Subject" className="mb-3" />
-                                        <Form.Control as="textarea" rows={4} placeholder="Message" className="mb-3" />
-                                        <Button variant="primary" type="submit">Send Message</Button>
-                                    </Form>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    </Row>
-                </Container>
-            </section>
+            <ContactSection />
 
-            {/* Footer */}
-            <footer className="bg-dark text-white py-4">
-                <Container>
-                    <Row>
-                        <Col md={4}>
-                            <h5>MediCare+</h5>
-                            <p>Quality healthcare for all.</p>
-                        </Col>
-                        <Col md={4}>
-                            <h5>Quick Links</h5>
-                            <ul className="list-unstyled">
-                                <li><a href="#home" className="text-white">Home</a></li>
-                                <li><a href="#services" className="text-white">Services</a></li>
-                                <li><a href="#doctors" className="text-white">Doctors</a></li>
-                            </ul>
-                        </Col>
-                        <Col md={4}>
-                            <h5>Follow Us</h5>
-                            <FaFacebook className="me-3" size={24} />
-                            <FaTwitter className="me-3" size={24} />
-                            <FaLinkedin className="me-3" size={24} />
-                            <FaInstagram size={24} />
-                        </Col>
-                    </Row>
-                </Container>
-            </footer>
+            <Footer />
+
+
         </div>
     );
 }

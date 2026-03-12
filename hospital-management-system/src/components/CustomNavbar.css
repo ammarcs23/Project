@@ -1,18 +1,18 @@
 .custom-navbar {
-    background: white;
+    background: #0b5ed7;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .brand {
-    color: black !important;
+    color: rgb(255, 255, 255) !important;
 }
 
 .hospital-icon {
-    color: #ff3b3b;
+    color: #e06060;
 }
 
 .nav-link-custom {
-    color: black !important;
+    color: rgb(255, 255, 255) !important;
     font-weight: 500;
     position: relative;
     transition: 0.3s;
@@ -23,14 +23,14 @@
     position: absolute;
     width: 0;
     height: 2px;
-    background: #0b5ed7;
+    background: #ffffff;
     left: 0;
     bottom: -5px;
     transition: width 0.3s ease;
 }
 
 .nav-link-custom:hover {
-    color: #0b5ed7 !important;
+    color: #d6d7da !important;
 }
 
 .nav-link-custom:hover::after {
@@ -38,13 +38,14 @@
 }
 
 .login-btn {
-    background: rgb(0, 0, 0);
-    color: #ffffff;
+    border-color: #d6d7da;
+    color: #000000;
     font-weight: 600;
+    background: white;
 }
 
 .login-btn:hover {
-    background: #0b5ed7;
+    background: #000000;
     color: rgb(255, 255, 255);
 }
 
