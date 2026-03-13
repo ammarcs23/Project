@@ -90,28 +90,6 @@ Run the project:
 npm start
 ```
 
----
-
-## 🌐 Future Improvements
-
-* Online Appointment Booking
-* Patient Record Management
-* Doctor Dashboard
-* Admin Panel
-* Database Integration
-
----
-
-## 👩‍💻 Contributor
-
-**Tanzeela Fatima**
-IT Undergraduate | Web Developer
-
-GitHub: https://github.com/Fatima-progmmer
-LinkedIn: https://www.linkedin.com/in/tanzeela-fatima-47861b2b7/
-
----
-
 ## 📜 License
 
 This project is developed for **learning and academic purposes**.
