@@ -11,14 +11,13 @@ import ImageSlider from './components/slider';
 import AboutSection from './components/About';
 import ChatButton from './components/ChatButton';
 import PatientModule from './pages/patient/PatientModule';
+import DoctorDashboard from './pages/Doctor/Doctor';
 import './App.css';
 
 function App() {
     return (
         <Router>
             <Routes>
-
-                {/* Home Page */}
                 <Route path="/" element={
                     <div className="App">
                         <NavigationBar />
@@ -32,13 +31,11 @@ function App() {
                     </div>
                 } />
 
-                {/* Patient Page */}
                 <Route path="/patient" element={<PatientModule />} />
-
+                <Route path="/doctor" element={<DoctorDashboard />} />
             </Routes>
         </Router>
     );
 }
+
 export default App;
-
-
