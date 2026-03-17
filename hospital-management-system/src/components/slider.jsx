@@ -4,9 +4,9 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './ImageSlider.css'; // Import the CSS file
 
 // Import local images
-import operationTheater from '../assets/slider2.webp';
-import icu from '../assets/slider3.webp';
-import diagnosticCenter from '../assets/slider2.webp';
+import operationTheater from '../assets/slider1.jfif';
+import icu from '../assets/slider3.jpg';
+import diagnosticCenter from '../assets/slider2.jpg';
 
 const ImageSlider = () => {
   const slides = [

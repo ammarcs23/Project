@@ -91,6 +91,7 @@ export default function PatientModule() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", margin: 0 }}>Patient Profile</h1>
             <button
+              src="appointment.jsx"
               onClick={() => alert("Navigate to Book Appointment page")}
               style={{
                 display: "flex", alignItems: "center", gap: 9,

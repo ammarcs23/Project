@@ -181,7 +181,7 @@ const Footer = () => {
                                 <a href="#">Sitemap</a>
                             </div>
                             <p className="made-with">
-                                Made with <FaHeart className="heart-icon" /> for better healthcare
+                                Developed with <FaHeart className="heart-icon" /> By Ammar Jahangir | Supervised by Mr.Muhammad Waseem
                             </p>
                         </Col>
                     </Row>
