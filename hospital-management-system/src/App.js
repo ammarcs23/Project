@@ -4,7 +4,8 @@ import "./components/CustomNavbar.css";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import { HomepageProvider } from './context/HomepageContext';
-import AnnouncementBanner  from './components/AnnouncementBanner';
+import AnnouncementBanner from './components/AnnouncementBanner';
+import WelcomePopup from './components/Welcomepopup';
 
 import ContactSection  from './components/ContactSection';
 import DoctorsSection  from './components/DoctorsSection';
@@ -30,6 +31,7 @@ function App() {
                     <Route path="/" element={
                         <div className="App">
                             <AnnouncementBanner />
+                            <WelcomePopup />
                             <NavigationBar />
                             <ImageSlider />
                             <ServicesSection />
