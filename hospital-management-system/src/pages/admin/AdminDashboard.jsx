@@ -35,12 +35,13 @@ function Modal({title,onClose,children,maxWidth=520}){return(<div style={{positi
 function BarChart({data,color,height=110}){const max=Math.max(...data);const bw=100/data.length;return(<div><svg viewBox={`0 0 100 ${height}`} preserveAspectRatio="none" style={{width:"100%",height}} xmlns="http://www.w3.org/2000/svg">{data.map((v,i)=>{const bh=(v/max)*(height-10);const x=i*bw+bw*0.15;return(<rect key={i} x={x} y={height-bh-4} width={bw*0.7} height={bh} fill={color} rx="2" opacity="0.85"/>);})}</svg><div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>{months.map(m=><div key={m} style={{flex:1,textAlign:"center",fontSize:8,color:"#94a3b8",fontWeight:600}}>{m}</div>)}</div></div>);}
 function PieChart({data,size=130}){const total=data.reduce((s,d)=>s+d.count,0);let cum=-90;const cx=size/2,cy=size/2,r=size*0.38,ir=size*0.22;const polar=(a,rad)=>{const r2=(a*Math.PI)/180;return[cx+rad*Math.cos(r2),cy+rad*Math.sin(r2)];};return(<svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>{data.map((d,i)=>{const angle=(d.count/total)*360;const sa=cum;cum+=angle;const[x1,y1]=polar(sa,r),[x2,y2]=polar(cum,r),[ix1,iy1]=polar(sa,ir),[ix2,iy2]=polar(cum,ir);const lg=(cum-sa)>180?1:0;return<path key={i} d={`M ${ix1} ${iy1} L ${x1} ${y1} A ${r} ${r} 0 ${lg} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${ir} ${ir} 0 ${lg} 0 ${ix1} ${iy1} Z`} fill={d.color} stroke="white" strokeWidth={2}/>;})}<circle cx={cx} cy={cy} r={ir-2} fill="white"/><text x={cx} y={cy-5} textAnchor="middle" fontSize="13" fontWeight="800" fill="#1e293b">{total}</text><text x={cx} y={cy+9} textAnchor="middle" fontSize="8" fill="#94a3b8">Total</text></svg>);}
 
+const EMPTY_DR = {name:"",specialty:"Cardiologist",exp:"",patients:0,status:"Active",email:"",phone:"",fee:"",avatar:"https://randomuser.me/api/portraits/men/10.jpg"};
+const EMPTY_PT = {name:"",age:"",gender:"Male",blood:"O+",condition:"",doctor:"Dr. Hamid Raza",status:"Active",lastVisit:"",email:"",phone:"",avatar:"https://randomuser.me/api/portraits/men/10.jpg"};
+
 /* ══════════════════════════════════════════════ MAIN ══════════════════════════════════════════════ */
 export default function AdminPanel() {
   const { state:hp, update:hpUpdate, updateNested, addItem, removeItem } = useHomepage();
 
-  const emptyDr={name:"",specialty:"Cardiologist",exp:"",patients:0,status:"Active",email:"",phone:"",fee:"",avatar:"https://randomuser.me/api/portraits/men/10.jpg"};
-  const emptyPt={name:"",age:"",gender:"Male",blood:"O+",condition:"",doctor:"Dr. Hamid Raza",status:"Active",lastVisit:"",email:"",phone:"",avatar:"https://randomuser.me/api/portraits/men/10.jpg"};
   const [active,setActive]=useState("dashboard");
   const [sidebarOpen,setSidebarOpen]=useState(false);
   const [doctors,setDoctors]=useState(initDoctors);
@@ -62,12 +63,10 @@ export default function AdminPanel() {
   const saveHp=()=>{setHpSaved(true);setTimeout(()=>setHpSaved(false),2500);};
 
   /* Doctors CRUD */
-  const emptyDr={name:"",specialty:"Cardiologist",exp:"",patients:0,status:"Active",email:"",phone:"",fee:"",avatar:"https://randomuser.me/api/portraits/men/10.jpg"};
   const saveDr=()=>{if(!drForm.name||!drForm.email){alert("Name and email required.");return;}if(drModal==="add")setDoctors(p=>[...p,{...drForm,id:"D00"+(p.length+1),patients:0}]);else setDoctors(p=>p.map(d=>d.id===drForm.id?drForm:d));setDrModal(null);};
   const deleteDr=id=>{setDoctors(p=>p.filter(d=>d.id!==id));setDeleteConfirm(null);};
 
   /* Patients CRUD */
-  const emptyPt={name:"",age:"",gender:"Male",blood:"O+",condition:"",doctor:doctors[0]?.name||"",status:"Active",lastVisit:"",email:"",phone:"",avatar:"https://randomuser.me/api/portraits/men/10.jpg"};
   const savePt=()=>{if(!ptForm.name||!ptForm.email){alert("Name and email required.");return;}if(ptModal==="add")setPatients(p=>[...p,{...ptForm,id:"P00"+(p.length+1)}]);else setPatients(p=>p.map(pt=>pt.id===ptForm.id?ptForm:pt));setPtModal(null);};
   const deletePt=id=>{setPatients(p=>p.filter(pt=>pt.id!==id));setDeleteConfirm(null);};
 
@@ -356,7 +355,7 @@ export default function AdminPanel() {
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12,marginBottom:20}}>
                 <div><h2 style={{fontSize:18,fontWeight:800,color:"#0f172a",margin:0}}>Manage Doctors</h2><div style={{fontSize:12,color:"#64748b",marginTop:2}}>{doctors.length} doctors registered</div></div>
-                <button onClick={()=>{setDrForm({...emptyDr,id:"D00"+(doctors.length+1)});setDrModal("add");}} style={{background:"linear-gradient(120deg,#4f46e5,#7c3aed)",color:"white",border:"none",borderRadius:12,padding:"10px 20px",fontWeight:700,fontSize:13,cursor:"pointer"}}>+ Add Doctor</button>
+                <button onClick={()=>{setDrForm({...EMPTY_DR,id:"D00"+(doctors.length+1)});setDrModal("add");}} style={{background:"linear-gradient(120deg,#4f46e5,#7c3aed)",color:"white",border:"none",borderRadius:12,padding:"10px 20px",fontWeight:700,fontSize:13,cursor:"pointer"}}>+ Add Doctor</button>
               </div>
               <div style={{position:"relative",marginBottom:16}}><span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:16,color:"#94a3b8"}}>🔍</span><input placeholder="Search..." value={drSearch} onChange={e=>setDrSearch(e.target.value)} style={{width:"100%",padding:"10px 12px 10px 38px",borderRadius:12,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"white",boxSizing:"border-box"}}/></div>
               <div className="dr-grid">
@@ -381,7 +380,7 @@ export default function AdminPanel() {
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12,marginBottom:20}}>
                 <div><h2 style={{fontSize:18,fontWeight:800,color:"#0f172a",margin:0}}>Manage Patients</h2><div style={{fontSize:12,color:"#64748b",marginTop:2}}>{patients.length} patients registered</div></div>
-                <button onClick={()=>{setPtForm({...emptyPt,id:"P00"+(patients.length+1)});setPtModal("add");}} style={{background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",color:"white",border:"none",borderRadius:12,padding:"10px 20px",fontWeight:700,fontSize:13,cursor:"pointer"}}>+ Add Patient</button>
+                <button onClick={()=>{setPtForm({...EMPTY_PT,id:"P00"+(patients.length+1)});setPtModal("add");}} style={{background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",color:"white",border:"none",borderRadius:12,padding:"10px 20px",fontWeight:700,fontSize:13,cursor:"pointer"}}>+ Add Patient</button>
               </div>
               <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
                 <div style={{flex:1,minWidth:200,position:"relative"}}><span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:16,color:"#94a3b8"}}>🔍</span><input placeholder="Search..." value={ptSearch} onChange={e=>setPtSearch(e.target.value)} style={{width:"100%",padding:"10px 12px 10px 38px",borderRadius:12,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"white",boxSizing:"border-box"}}/></div>

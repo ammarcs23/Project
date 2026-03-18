@@ -4,8 +4,7 @@ import "./components/CustomNavbar.css";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import { HomepageProvider } from './context/HomepageContext';
-import AnnouncementBanner from './components/AnnouncementBanner';
-import AnnouncementPopup  from './components/AnnouncementPopup.JS';
+import AnnouncementBanner  from './components/AnnouncementBanner';
 
 import ContactSection  from './components/ContactSection';
 import DoctorsSection  from './components/DoctorsSection';
@@ -30,24 +29,17 @@ function App() {
                 <Routes>
                     <Route path="/" element={
                         <div className="App">
-                            {/* ✅ Banner — controlled from Admin */}
                             <AnnouncementBanner />
-                            {/* ✅ Popup — shows on load */}
-                            <AnnouncementPopup />
                             <NavigationBar />
                             <ImageSlider />
-                            {/* ✅ Services — dynamic from Admin */}
                             <ServicesSection />
-                            {/* ✅ About — dynamic from Admin */}
                             <AboutSection />
-                            {/* ✅ Doctors — dynamic + clickable from Admin */}
                             <DoctorsSection />
                             <ContactSection />
                             <Footer />
                             <ChatButton />
                         </div>
                     } />
-
                     <Route path="/patient"          element={<PatientModule />} />
                     <Route path="/doctor"           element={<DoctorDashboard />} />
                     <Route path="/book-appointment" element={<BookAppointment />} />
