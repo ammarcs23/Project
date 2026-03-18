@@ -236,7 +236,7 @@ export default function PatientModule() {
                     <span onClick={()=>setActive("appointments")} style={{ fontSize:12, color:"#14b8a6", cursor:"pointer", fontWeight:600 }}>See All →</span>
                   </div>
                   {upcomingAppointments.map((a,i)=>(
-                    <ApptRow key={a.id} a={a} last={i===upcomingAppointments.length-1} />
+                    <ApptRow key={a.id} a={a} last={i===upcomingAppointments.length-1} navigate={navigate} />
                   ))}
                 </div>
               </div>
@@ -347,7 +347,7 @@ export default function PatientModule() {
               <div style={{ background:"white", borderRadius:16, padding:20,
                 boxShadow:"0 1px 8px rgba(0,0,0,0.06)", marginBottom:20 }}>
                 {upcomingAppointments.map((a,i)=>(
-                  <ApptRow key={a.id} a={a} last={i===upcomingAppointments.length-1} showType />
+                  <ApptRow key={a.id} a={a} last={i===upcomingAppointments.length-1} showType navigate={navigate} />
                 ))}
               </div>
 
@@ -585,25 +585,62 @@ function Tag({ color, tc, children }) {
       background:color, color:tc, display:"inline-block", marginTop:2 }}>{children}</span>
   );
 }
-function ApptRow({ a, last, showType }) {
+function ApptRow({ a, last, showType, navigate }) {
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:12,
-      padding:"11px 0", borderBottom:last?"none":"1px solid #f1f5f9", flexWrap:"wrap" }}>
-      <div style={{ width:38, height:38, borderRadius:10,
-        background: a.type==="online"?"#eff6ff":"#e0f2fe",
-        display:"flex", alignItems:"center", justifyContent:"center",
-        fontSize:18, flexShrink:0 }}>
-        {a.type==="online"?"💻":"👨‍⚕️"}
+    <div style={{ padding:"14px 0", borderBottom:last?"none":"1px solid #f1f5f9" }}>
+      {/* Top row */}
+      <div style={{ display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+        <div style={{ width:40, height:40, borderRadius:10,
+          background: a.type==="online"?"#eff6ff":"#e0f2fe",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          fontSize:20, flexShrink:0 }}>
+          {a.type==="online"?"💻":"👨‍⚕️"}
+        </div>
+        <div style={{ flex:1, minWidth:120 }}>
+          <div style={{ fontWeight:700, fontSize:13, color:"#1e293b" }}>{a.doctor}</div>
+          <div style={{ fontSize:11, color:"#94a3b8" }}>{a.specialty}</div>
+        </div>
+        <div style={{ textAlign:"right" }}>
+          <div style={{ fontSize:12, color:"#475569", fontWeight:500 }}>{a.date}</div>
+          <div style={{ fontSize:11, color:"#94a3b8" }}>{a.time}</div>
+        </div>
+        <Tag color="#dcfce7" tc="#16a34a">● Upcoming</Tag>
       </div>
-      <div style={{ flex:1, minWidth:120 }}>
-        <div style={{ fontWeight:600, fontSize:13, color:"#1e293b" }}>{a.doctor}</div>
-        <div style={{ fontSize:11, color:"#94a3b8" }}>{a.specialty}</div>
+      {/* Buttons */}
+      <div style={{ display:"flex", gap:8, marginTop:10, paddingLeft:52, flexWrap:"wrap" }}>
+        <button onClick={()=>navigate&&navigate("/book-appointment")} style={{
+          display:"flex", alignItems:"center", gap:5,
+          background:"#f1f5f9", border:"none", borderRadius:9,
+          padding:"7px 14px", fontSize:12, fontWeight:600,
+          color:"#0d4f4f", cursor:"pointer" }}>
+          📋 View Details
+        </button>
+        {a.type==="online" && (
+          <button onClick={()=>navigate&&navigate("/book-appointment")} style={{
+            display:"flex", alignItems:"center", gap:5,
+            background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",
+            border:"none", borderRadius:9, padding:"7px 14px",
+            fontSize:12, fontWeight:700, color:"white", cursor:"pointer" }}>
+            💬 Open Chat
+          </button>
+        )}
+        {a.type==="visit" && (
+          <button style={{
+            display:"flex", alignItems:"center", gap:5,
+            background:"#eff6ff", border:"none", borderRadius:9,
+            padding:"7px 14px", fontSize:12, fontWeight:600,
+            color:"#1d4ed8", cursor:"pointer" }}>
+            🏥 Get Directions
+          </button>
+        )}
+        <button style={{
+          display:"flex", alignItems:"center", gap:5,
+          background:"#fee2e2", border:"none", borderRadius:9,
+          padding:"7px 14px", fontSize:12, fontWeight:600,
+          color:"#dc2626", cursor:"pointer" }}>
+          ✕ Cancel
+        </button>
       </div>
-      <div style={{ textAlign:"right" }}>
-        <div style={{ fontSize:12, color:"#475569", fontWeight:500 }}>{a.date}</div>
-        <div style={{ fontSize:11, color:"#94a3b8" }}>{a.time}</div>
-      </div>
-      <Tag color="#dcfce7" tc="#16a34a">● Upcoming</Tag>
     </div>
   );
 }
