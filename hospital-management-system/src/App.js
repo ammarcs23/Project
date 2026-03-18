@@ -13,6 +13,7 @@ import ChatButton from './components/ChatButton';
 import PatientModule from './pages/patient/PatientModule';
 import DoctorDashboard from './pages/Doctor/Doctor';
 import BookAppointment from './pages/patient/BookAppointment';
+import AdminPanel from './pages/admin/AdminDashboard';
 import './App.css';
 
 function App() {
@@ -32,9 +33,10 @@ function App() {
                     </div>
                 } />
 
-                <Route path="/patient" element={<PatientModule />} />
-                <Route path="/doctor" element={<DoctorDashboard />} />
+                <Route path="/patient"          element={<PatientModule />} />
+                <Route path="/doctor"           element={<DoctorDashboard />} />
                 <Route path="/book-appointment" element={<BookAppointment />} />
+                <Route path="/admin"            element={<AdminPanel />} />
 
             </Routes>
         </Router>
