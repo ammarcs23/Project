@@ -1,70 +1,216 @@
 import { useState } from "react";
-import logo from "../../logo.svg";  // <-- correct path
+import { useNavigate } from "react-router-dom";
 import "./Signup1.css";
-import Footer from "../../components/Footer";
 
-const CardBackground = ({ view }) => {
-  const bgClass = view === "login" ? "register" : "login";
-  return (
-    <>
-      <div className={`card-bg card-bg-1 ${bgClass}`}></div>
-      <div className={`card-bg card-bg-2 ${bgClass}`}></div>
-    </>
-  );
-};
-
-const LogoGroup = ({ logo }) => (
-  <>
-    <img className="logo logo-1" src={logo} alt="logo" />
-    <img className="logo logo-2" src={logo} alt="logo" /> 
-  </>
-);
-
-const LoginForm = ({ view, toggleView }) => (
-  <div className={`form login ${view === "login" ? "active" : ""}`}>
-    <form>
-      <h2>Login</h2>
-      <input type="text" placeholder="Email" />
-      <input type="password" placeholder="Password" />
-      <p>Forgot password?</p>
-      <button type="submit">LOGIN</button>
-      <a onClick={toggleView} style={{ cursor: "pointer" }}>
-        Don't have an account? <em>Register here</em>
-      </a>
-    </form>
+/* ── Role Card ── */
+const RoleCard = ({ role, icon, desc, selected, onSelect }) => (
+  <div
+    className={`role-card ${selected ? "selected" : ""}`}
+    onClick={() => onSelect(role)}
+  >
+    <div className="role-icon">{icon}</div>
+    <div className="role-label">{role}</div>
+    <div className="role-desc">{desc}</div>
+    <div className="role-check">{selected ? "✓" : ""}</div>
   </div>
 );
 
-const RegisterForm = ({ view, toggleView }) => (
-  <div className={`form register ${view === "register" ? "active" : ""}`}>
-    <form>
-      <h2>Register</h2>
-      <input type="text" placeholder="Name" />
-      <input type="email" placeholder="Email" />
-      <input type="password" placeholder="Password" />
-      <button type="submit">REGISTER</button>
-      <a onClick={toggleView} style={{ cursor: "pointer" }}>
-        Already have an account? <em>Login here</em>
-      </a>
-    </form>
-  </div>
-);
+export default function Signup1() {
+  const navigate = useNavigate();
+  const [step, setStep]       = useState("role");   // role → auth
+  const [role, setRole]       = useState(null);      // "Patient" | "Doctor"
+  const [mode, setMode]       = useState("login");   // login | register
+  const [form, setForm]       = useState({ name: "", email: "", password: "", doctorId: "" });
+  const [error, setError]     = useState("");
+  const [loading, setLoading] = useState(false);
 
-export const Signup1 = () => {
-  const [view, setView] = useState("login");
+  const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
-  const toggleView = () => setView(view === "login" ? "register" : "login");
+  const handleContinue = () => {
+    if (!role) { setError("Please select your role first."); return; }
+    setError("");
+    setStep("auth");
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Basic validation
+    if (!form.email || !form.password) { setError("Email and password are required."); return; }
+    if (mode === "register" && !form.name) { setError("Full name is required."); return; }
+    if (mode === "login" && role === "Doctor" && !form.doctorId) {
+      setError("Doctor ID is required. Contact admin if you don't have one."); return;
+    }
+
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      if (role === "Doctor") navigate("/doctor");
+      else navigate("/patient");
+    }, 1400);
+  };
 
   return (
-    <section className="page signup-1-page">
-      <div className="signup-1-card">
-        <CardBackground view={view} />
-        <LogoGroup logo={logo} />
-        <LoginForm view={view} toggleView={toggleView} />
-        <RegisterForm view={view} toggleView={toggleView} />
+    <div className="sl-page">
+      {/* Background layers */}
+      <div className="sl-bg">
+        <div className="sl-orb sl-orb-1" />
+        <div className="sl-orb sl-orb-2" />
+        <div className="sl-orb sl-orb-3" />
+        <div className="sl-grid" />
       </div>
-    </section>
-  );
-};
 
-export default Signup1;
+      <div className="sl-card">
+        {/* Left panel */}
+        <div className="sl-left">
+          <div className="sl-brand">
+            <div className="sl-brand-icon">🏥</div>
+            <div>
+              <div className="sl-brand-name">MediCare<span>+</span></div>
+              <div className="sl-brand-sub">Advanced Hospital System</div>
+            </div>
+          </div>
+
+          <div className="sl-left-body">
+            <h1 className="sl-headline">
+              Your Health,<br />
+              <span>Our Priority</span>
+            </h1>
+            <p className="sl-tagline">
+              Seamlessly connect with doctors, manage appointments, and access your complete health records — all in one place.
+            </p>
+
+            <div className="sl-stats">
+              {[["500+","Beds"],["150+","Doctors"],["50K+","Patients"],["24/7","Support"]].map(([v,l]) => (
+                <div key={l} className="sl-stat">
+                  <div className="sl-stat-val">{v}</div>
+                  <div className="sl-stat-lbl">{l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="sl-left-footer">
+            Trusted healthcare since 1998 · NABH Accredited
+          </div>
+        </div>
+
+        {/* Right panel */}
+        <div className="sl-right">
+
+          {/* ── STEP 1: Role Selection ── */}
+          {step === "role" && (
+            <div className="sl-step sl-step-role">
+              <div className="sl-step-header">
+                <h2>Welcome Back</h2>
+                <p>Who are you logging in as?</p>
+              </div>
+
+              <div className="role-cards">
+                <RoleCard
+                  role="Patient"
+                  icon="🧑‍⚕️"
+                  desc="Access appointments & health records"
+                  selected={role === "Patient"}
+                  onSelect={setRole}
+                />
+                <RoleCard
+                  role="Doctor"
+                  icon="👨‍⚕️"
+                  desc="Manage schedule & patient records"
+                  selected={role === "Doctor"}
+                  onSelect={setRole}
+                />
+              </div>
+
+              {error && <div className="sl-error">{error}</div>}
+
+              <button className="sl-btn" onClick={handleContinue}>
+                Continue
+                <svg viewBox="0 0 24 24" fill="none"><path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+
+              <div className="sl-admin-link" onClick={() => navigate("/admin")}>
+                🔐 Admin Portal
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 2: Auth Form ── */}
+          {step === "auth" && (
+            <div className="sl-step sl-step-auth">
+              {/* Back button */}
+              <button className="sl-back" onClick={() => { setStep("role"); setError(""); }}>
+                ← Back
+              </button>
+
+              {/* Role badge */}
+              <div className={`sl-role-badge ${role === "Doctor" ? "badge-doctor" : "badge-patient"}`}>
+                {role === "Doctor" ? "👨‍⚕️" : "🧑‍⚕️"} {role} Portal
+              </div>
+
+              {/* Tab switcher */}
+              <div className="sl-tabs">
+                <button className={`sl-tab ${mode === "login" ? "active" : ""}`} onClick={() => { setMode("login"); setError(""); }}>
+                  Sign In
+                </button>
+                {role === "Patient" && (
+                  <button className={`sl-tab ${mode === "register" ? "active" : ""}`} onClick={() => { setMode("register"); setError(""); }}>
+                    Register
+                  </button>
+                )}
+              </div>
+
+              <form className="sl-form" onSubmit={handleSubmit}>
+                {mode === "register" && (
+                  <div className="sl-field">
+                    <label>Full Name</label>
+                    <input type="text" placeholder="John Smith" value={form.name} onChange={set("name")} />
+                  </div>
+                )}
+
+                <div className="sl-field">
+                  <label>Email Address</label>
+                  <input type="email" placeholder="you@example.com" value={form.email} onChange={set("email")} />
+                </div>
+
+                <div className="sl-field">
+                  <label>Password</label>
+                  <input type="password" placeholder="••••••••" value={form.password} onChange={set("password")} />
+                </div>
+
+                {/* Doctor ID — only for doctor login */}
+                {role === "Doctor" && mode === "login" && (
+                  <div className="sl-field">
+                    <label>Doctor ID <span className="sl-hint">(assigned by admin)</span></label>
+                    <input type="text" placeholder="e.g. D001" value={form.doctorId} onChange={set("doctorId")} />
+                  </div>
+                )}
+
+                {error && <div className="sl-error">{error}</div>}
+
+                {mode === "login" && (
+                  <div className="sl-forgot">Forgot password?</div>
+                )}
+
+                <button type="submit" className={`sl-btn ${loading ? "loading" : ""}`} disabled={loading}>
+                  {loading
+                    ? <span className="sl-spinner" />
+                    : mode === "login" ? "Sign In" : "Create Account"}
+                </button>
+
+                {role === "Doctor" && mode === "login" && (
+                  <div className="sl-doctor-note">
+                    Don't have a Doctor ID? Contact the hospital admin to get your credentials.
+                  </div>
+                )}
+              </form>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}

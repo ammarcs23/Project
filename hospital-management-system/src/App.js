@@ -5,7 +5,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import { HomepageProvider } from './context/HomepageContext';
 import AnnouncementBanner from './components/AnnouncementBanner';
-import WelcomePopup from './components/WelcomePopup';
+import WelcomePopup      from './components/WelcomePopup';
 
 import ContactSection  from './components/ContactSection';
 import DoctorsSection  from './components/DoctorsSection';
@@ -20,6 +20,7 @@ import PatientModule   from './pages/patient/PatientModule';
 import DoctorDashboard from './pages/Doctor/Doctor';
 import BookAppointment from './pages/patient/BookAppointment';
 import AdminPanel      from './pages/admin/AdminDashboard';
+import Signup1         from './pages/signin/Signup1';
 
 import './App.css';
 
@@ -42,10 +43,11 @@ function App() {
                             <ChatButton />
                         </div>
                     } />
-                    <Route path="/patient"          element={<PatientModule />} />
-                    <Route path="/doctor"           element={<DoctorDashboard />} />
+                    <Route path="/login"           element={<Signup1 />} />
+                    <Route path="/patient"         element={<PatientModule />} />
+                    <Route path="/doctor"          element={<DoctorDashboard />} />
                     <Route path="/book-appointment" element={<BookAppointment />} />
-                    <Route path="/admin"            element={<AdminPanel />} />
+                    <Route path="/admin"           element={<AdminPanel />} />
                 </Routes>
             </Router>
         </HomepageProvider>

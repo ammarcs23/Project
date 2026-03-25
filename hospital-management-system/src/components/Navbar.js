@@ -1,22 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar, Nav, Container } from 'react-bootstrap';
 import { FaHeartbeat, FaSignInAlt, FaUserPlus } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import './NavigationBar.css';
 
 const NavigationBar = () => {
+    const navigate = useNavigate();
     const [scrolled, setScrolled] = useState(false);
     const [activeLink, setActiveLink] = useState('home');
     const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-    // Change navbar style on scroll
     useEffect(() => {
         const handleScroll = () => {
             const isScrolled = window.scrollY > 50;
-            if (isScrolled !== scrolled) {
-                setScrolled(isScrolled);
-            }
+            if (isScrolled !== scrolled) setScrolled(isScrolled);
 
-            // Update active link based on scroll position
             const sections = ['home', 'services', 'about', 'doctors', 'contact'];
             const scrollPosition = window.scrollY + 150;
 
@@ -33,12 +31,9 @@ const NavigationBar = () => {
         };
 
         window.addEventListener('scroll', handleScroll);
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-        };
+        return () => window.removeEventListener('scroll', handleScroll);
     }, [scrolled]);
 
-    // Smooth scroll to sections
     const handleNavClick = (e, href) => {
         e.preventDefault();
         const element = document.querySelector(href);
@@ -91,18 +86,27 @@ const NavigationBar = () => {
                                     className={`nav-link-custom ${activeLink === item ? 'active' : ''}`}
                                     onClick={(e) => handleNavClick(e, `#${item}`)}
                                 >
-                                    <span className="nav-link-text">{item.charAt(0).toUpperCase() + item.slice(1)}</span>
+                                    <span className="nav-link-text">
+                                        {item.charAt(0).toUpperCase() + item.slice(1)}
+                                    </span>
                                     <span className="nav-link-indicator"></span>
                                 </Nav.Link>
                             ))}
                         </Nav>
 
+                        {/* ✅ Login/Signup → /login page */}
                         <div className="auth-buttons">
-                            <button className="auth-btn login-btn">
+                            <button
+                                className="auth-btn login-btn"
+                                onClick={() => { setShowMobileMenu(false); navigate('/login'); }}
+                            >
                                 <FaSignInAlt className="btn-icon" />
                                 <span>Login</span>
                             </button>
-                            <button className="auth-btn signup-btn">
+                            <button
+                                className="auth-btn signup-btn"
+                                onClick={() => { setShowMobileMenu(false); navigate('/login'); }}
+                            >
                                 <FaUserPlus className="btn-icon" />
                                 <span>Sign Up</span>
                             </button>
@@ -111,17 +115,9 @@ const NavigationBar = () => {
                 </Container>
             </Navbar>
 
-            
             <style>{`
-                body {
-                    padding-top: 80px;
-                }
-                
-                @media (max-width: 768px) {
-                    body {
-                        padding-top: 70px;
-                    }
-                }
+                body { padding-top: 80px; }
+                @media (max-width: 768px) { body { padding-top: 70px; } }
             `}</style>
         </>
     );
