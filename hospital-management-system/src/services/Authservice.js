@@ -38,7 +38,7 @@ export const getUser = () => {
 // ── Get token ────────────────────────────────
 export const getToken = () => localStorage.getItem('hospital_token');
 
-// ── Logout ───────────────────────────────────
+// ── Logout ──────────────────────────────────
 export const logout = () => {
     localStorage.removeItem('hospital_token');
     localStorage.removeItem('hospital_user');

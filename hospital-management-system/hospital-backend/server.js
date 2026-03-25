@@ -6,14 +6,15 @@ const app = express();
 
 // ── Middleware ────────────────────────────────
 app.use(cors({
-    origin: 'http://localhost:3000',   // React app
+    origin: 'http://localhost:3000',
     credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ── Routes ────────────────────────────────────
-app.use('/api/auth', require('./routes/auth'));
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
 
 // ── Health check ─────────────────────────────
 app.get('/', (req, res) => {
