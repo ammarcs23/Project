@@ -5,6 +5,7 @@
 CREATE DATABASE IF NOT EXISTS hospital_db;
 USE hospital_db;
 
+
 -- ── 1. USERS (common login table) ──────────────
 CREATE TABLE users (
     id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -41,7 +42,7 @@ CREATE TABLE patients (
     blood_type  VARCHAR(5),
     phone       VARCHAR(20),
     address     TEXT,
-    condition   VARCHAR(255),
+    condition_   VARCHAR(255),
     avatar      TEXT,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -78,8 +79,9 @@ CREATE TABLE doctor_schedules (
 -- Password: admin123 (bcrypt hash)
 INSERT INTO users (name, email, password, role) VALUES
 ('Super Admin', 'admin@hospital.com',
- '$2b$10$YourHashHere',   -- replace with real hash after setup
+ 'ammar007',   -- replace with real hash after setup
  'admin');
+
 
 -- ── SAMPLE DOCTORS ─────────────────────────────
 INSERT INTO users (name, email, password, role) VALUES
@@ -89,3 +91,7 @@ INSERT INTO users (name, email, password, role) VALUES
 INSERT INTO doctors (user_id, doctor_id, specialty, experience, fee, phone) VALUES
 (2, 'D001', 'Cardiologist',  '8 yrs', 120.00, '+1-555-0101'),
 (3, 'D002', 'Neurologist',   '12 yrs', 150.00, '+1-555-0102');
+
+UPDATE users 
+SET password='$2a$10$kOto4Sm95oMuxfhbx.G2AORehePpWaOtAWyMbfPojboaOnRvMgbpu' 
+WHERE email='admin@hospital.com';

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useHomepage } from "../../context/HomepageContext";
 
 /* ── STATIC DATA ── */
@@ -41,6 +42,13 @@ const EMPTY_PT = {name:"",age:"",gender:"Male",blood:"O+",condition:"",doctor:"D
 /* ══════════════════════════════════════════════ MAIN ══════════════════════════════════════════════ */
 export default function AdminPanel() {
   const { state:hp, update:hpUpdate, updateNested, addItem, removeItem } = useHomepage();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("hospital_token");
+    localStorage.removeItem("hospital_user");
+    navigate("/login");
+  };
 
   const [active,setActive]=useState("dashboard");
   const [sidebarOpen,setSidebarOpen]=useState(false);
@@ -117,7 +125,7 @@ export default function AdminPanel() {
             </button>
           ))}
         </div>
-        <button style={{margin:"0 12px",display:"flex",alignItems:"center",gap:10,padding:"11px 14px",border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"rgba(255,255,255,0.5)",fontSize:13,fontWeight:600,cursor:"pointer",borderRadius:12}}>↩ Logout</button>
+        <button onClick={handleLogout} style={{margin:"0 12px",display:"flex",alignItems:"center",gap:10,padding:"11px 14px",border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"rgba(255,255,255,0.5)",fontSize:13,fontWeight:600,cursor:"pointer",borderRadius:12}}>↩ Logout</button>
       </div>
 
       {/* ── MAIN ── */}

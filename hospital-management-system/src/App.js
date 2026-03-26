@@ -4,8 +4,9 @@ import "./components/CustomNavbar.css";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import { HomepageProvider } from './context/HomepageContext';
-import AnnouncementBanner from './components/AnnouncementBanner';
-import WelcomePopup      from './components/WelcomePopup';
+import ProtectedRoute      from './components/Protectedroute.jsx';
+import AnnouncementBanner  from './components/AnnouncementBanner';
+import WelcomePopup        from './components/WelcomePopup';
 
 import ContactSection  from './components/ContactSection';
 import DoctorsSection  from './components/DoctorsSection';
@@ -29,6 +30,8 @@ function App() {
         <HomepageProvider>
             <Router>
                 <Routes>
+
+                    {/* ── Public Routes ── */}
                     <Route path="/" element={
                         <div className="App">
                             <AnnouncementBanner />
@@ -43,11 +46,36 @@ function App() {
                             <ChatButton />
                         </div>
                     } />
-                    <Route path="/login"           element={<Signup1 />} />
-                    <Route path="/patient"         element={<PatientModule />} />
-                    <Route path="/doctor"          element={<DoctorDashboard />} />
-                    <Route path="/book-appointment" element={<BookAppointment />} />
-                    <Route path="/admin"           element={<AdminPanel />} />
+
+                    <Route path="/login" element={<Signup1 />} />
+
+                    {/* ── Protected: Admin only ── */}
+                    <Route path="/admin" element={
+                        <ProtectedRoute allowedRole="admin">
+                            <AdminPanel />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* ── Protected: Doctor only ── */}
+                    <Route path="/doctor" element={
+                        <ProtectedRoute allowedRole="doctor">
+                            <DoctorDashboard />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* ── Protected: Patient only ── */}
+                    <Route path="/patient" element={
+                        <ProtectedRoute allowedRole="patient">
+                            <PatientModule />
+                        </ProtectedRoute>
+                    } />
+
+                    <Route path="/book-appointment" element={
+                        <ProtectedRoute allowedRole="patient">
+                            <BookAppointment />
+                        </ProtectedRoute>
+                    } />
+
                 </Routes>
             </Router>
         </HomepageProvider>

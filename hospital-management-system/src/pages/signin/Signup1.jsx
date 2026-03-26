@@ -36,12 +36,10 @@ export default function Signup1() {
     setStep("auth");
   };
 
-  /* ── Main Submit — connected to backend ── */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Validation
     if (!form.email || !form.password) { setError("Email and password are required."); return; }
     if (mode === "register" && !form.name) { setError("Full name is required."); return; }
     if (mode === "login" && role === "Doctor" && !form.doctorId) {
@@ -54,7 +52,6 @@ export default function Signup1() {
       let res, data;
 
       if (mode === "register") {
-        // ── REGISTER (Patient only) ──
         res  = await fetch(`${API}/auth/register`, {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
@@ -63,14 +60,13 @@ export default function Signup1() {
         data = await res.json();
 
       } else {
-        // ── LOGIN (All roles) ──
         res  = await fetch(`${API}/auth/login`, {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
           body:    JSON.stringify({
             email:    form.email,
             password: form.password,
-            role:     role.toLowerCase(),   // "patient" | "doctor" | "admin"
+            role:     role.toLowerCase(),
             doctorId: form.doctorId || undefined,
           }),
         });
@@ -83,13 +79,13 @@ export default function Signup1() {
         return;
       }
 
-      // ── Save token + user to localStorage ──
+      // Token + user save karo
       localStorage.setItem("hospital_token", data.token);
       localStorage.setItem("hospital_user",  JSON.stringify(data.user));
 
-      // ── Redirect based on role ──
+      // Role ke hisaab se redirect
       const userRole = data.user.role;
-      if (userRole === "admin")   navigate("/admin");
+      if      (userRole === "admin")   navigate("/admin");
       else if (userRole === "doctor")  navigate("/doctor");
       else                             navigate("/patient");
 
@@ -110,6 +106,7 @@ export default function Signup1() {
       </div>
 
       <div className="sl-card">
+
         {/* ── Left Panel ── */}
         <div className="sl-left">
           <div className="sl-brand">
@@ -156,8 +153,27 @@ export default function Signup1() {
               </div>
 
               <div className="role-cards">
-                <RoleCard role="Patient" icon="🧑‍⚕️" desc="Access appointments & health records" selected={role === "Patient"} onSelect={setRole} />
-                <RoleCard role="Doctor"  icon="👨‍⚕️" desc="Manage schedule & patient records"    selected={role === "Doctor"}  onSelect={setRole} />
+                <RoleCard
+                  role="Patient"
+                  icon="🧑‍⚕️"
+                  desc="Access appointments & health records"
+                  selected={role === "Patient"}
+                  onSelect={setRole}
+                />
+                <RoleCard
+                  role="Doctor"
+                  icon="👨‍⚕️"
+                  desc="Manage schedule & patient records"
+                  selected={role === "Doctor"}
+                  onSelect={setRole}
+                />
+                <RoleCard
+                  role="Admin"
+                  icon="🔐"
+                  desc="Manage hospital system & staff"
+                  selected={role === "Admin"}
+                  onSelect={setRole}
+                />
               </div>
 
               {error && <div className="sl-error">{error}</div>}
@@ -168,10 +184,6 @@ export default function Signup1() {
                   <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-
-              <div className="sl-admin-link" onClick={() => navigate("/admin")}>
-                🔐 Admin Portal
-              </div>
             </div>
           )}
 
@@ -182,23 +194,33 @@ export default function Signup1() {
                 ← Back
               </button>
 
-              <div className={`sl-role-badge ${role === "Doctor" ? "badge-doctor" : "badge-patient"}`}>
-                {role === "Doctor" ? "👨‍⚕️" : "🧑‍⚕️"} {role} Portal
+              <div className={`sl-role-badge ${
+                role === "Doctor" ? "badge-doctor" :
+                role === "Admin"  ? "badge-admin"  : "badge-patient"
+              }`}>
+                {role === "Doctor" ? "👨‍⚕️" : role === "Admin" ? "🔐" : "🧑‍⚕️"} {role} Portal
               </div>
 
-              {/* Tabs — Register only for Patient */}
+              {/* Tabs — Register sirf Patient ke liye */}
               <div className="sl-tabs">
-                <button className={`sl-tab ${mode === "login" ? "active" : ""}`} onClick={() => { setMode("login"); setError(""); }}>
+                <button
+                  className={`sl-tab ${mode === "login" ? "active" : ""}`}
+                  onClick={() => { setMode("login"); setError(""); }}
+                >
                   Sign In
                 </button>
                 {role === "Patient" && (
-                  <button className={`sl-tab ${mode === "register" ? "active" : ""}`} onClick={() => { setMode("register"); setError(""); }}>
+                  <button
+                    className={`sl-tab ${mode === "register" ? "active" : ""}`}
+                    onClick={() => { setMode("register"); setError(""); }}
+                  >
                     Register
                   </button>
                 )}
               </div>
 
               <form className="sl-form" onSubmit={handleSubmit}>
+
                 {mode === "register" && (
                   <div className="sl-field">
                     <label>Full Name</label>
@@ -216,6 +238,7 @@ export default function Signup1() {
                   <input type="password" placeholder="••••••••" value={form.password} onChange={set("password")} />
                 </div>
 
+                {/* Doctor ID field */}
                 {role === "Doctor" && mode === "login" && (
                   <div className="sl-field">
                     <label>Doctor ID <span className="sl-hint">(assigned by admin)</span></label>
@@ -229,8 +252,14 @@ export default function Signup1() {
                   <div className="sl-forgot">Forgot password?</div>
                 )}
 
-                <button type="submit" className={`sl-btn ${loading ? "loading" : ""}`} disabled={loading}>
-                  {loading ? <span className="sl-spinner" /> : mode === "login" ? "Sign In" : "Create Account"}
+                <button
+                  type="submit"
+                  className={`sl-btn ${loading ? "loading" : ""}`}
+                  disabled={loading}
+                >
+                  {loading
+                    ? <span className="sl-spinner" />
+                    : mode === "login" ? "Sign In" : "Create Account"}
                 </button>
 
                 {role === "Doctor" && mode === "login" && (
@@ -238,6 +267,13 @@ export default function Signup1() {
                     Don't have a Doctor ID? Contact the hospital admin to get your credentials.
                   </div>
                 )}
+
+                {role === "Admin" && (
+                  <div className="sl-doctor-note">
+                    Admin access is restricted. Contact system administrator if you have issues logging in.
+                  </div>
+                )}
+
               </form>
             </div>
           )}

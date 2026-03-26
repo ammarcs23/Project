@@ -444,3 +444,9 @@
   .sl-page { padding: 12px; }
   .sl-card { border-radius: 20px; }
 }
+
+.badge-admin {
+  background: rgba(239,68,68,0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,0.3);
+}
