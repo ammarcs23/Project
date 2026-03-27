@@ -1,25 +1,31 @@
+// hospital-backend/routes/doctor.js
 const express = require('express');
 const router  = express.Router();
 const { protect, roleOnly } = require('../middleware/authMiddleware');
-
+const upload = require('../middleware/upload');
 const {
-    getDoctorProfile,
-    getScheduleSettings,
-    updateScheduleSettings,
+    getProfile, updateProfile,
+    getSchedule, saveSchedule,
     getAvailableSlots,
-    getDoctorAppointments,
-    updateAppointmentStatus,
-    getDoctorPatients,
+    getAppointments, updateAppointmentStatus,
+    toggleStatus,
+    getMyPatients,
+    saveAIAnalysis
 } = require('../controllers/doctorController');
 
-// Doctor ke apne routes (login required + doctor role)
-router.use(protect, roleOnly('doctor'));
+// Public (any logged-in user) - for patient booking
+router.get('/slots', protect, getAvailableSlots);
 
-router.get ('/profile',                   getDoctorProfile);
-router.get ('/schedule',                  getScheduleSettings);
-router.put ('/schedule',                  updateScheduleSettings);
-router.get ('/appointments',              getDoctorAppointments);
-router.put ('/appointments/:id/status',   updateAppointmentStatus);
-router.get ('/patients',                  getDoctorPatients);
+// Doctor only
+router.use(protect, roleOnly('doctor'));
+router.get('/profile',                           getProfile);
+router.put('/profile', upload.single('avatar'),  updateProfile);
+router.get('/schedule',  getSchedule);
+router.post('/schedule', saveSchedule);
+router.get('/appointments',              getAppointments);
+router.put('/appointments/:id/status',   updateAppointmentStatus);
+router.put('/appointments/:id/analysis', saveAIAnalysis);
+router.put('/status', toggleStatus);
+router.get('/patients', getMyPatients);
 
 module.exports = router;

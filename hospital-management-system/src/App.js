@@ -22,6 +22,7 @@ import DoctorDashboard from './pages/Doctor/Doctor';
 import BookAppointment from './pages/patient/BookAppointment';
 import AdminPanel      from './pages/admin/AdminDashboard';
 import Signup1         from './pages/signin/Signup1';
+import DoctorDashboard from './pages/Doctor/Doctor.jsx';
 
 import './App.css';
 
@@ -56,9 +57,8 @@ function App() {
                         </ProtectedRoute>
                     } />
 
-                    {/* ── Protected: Doctor only ── */}
                     <Route path="/doctor" element={
-                        <ProtectedRoute allowedRole="doctor">
+                        <ProtectedRoute role="doctor">
                             <DoctorDashboard />
                         </ProtectedRoute>
                     } />

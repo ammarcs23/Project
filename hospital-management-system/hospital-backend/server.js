@@ -15,8 +15,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Routes ────────────────────────────────────
-app.use('/api/auth',  require('./routes/auth'));
-app.use('/api/admin', require('./routes/admin'));
+app.use('/api/auth',   require('./routes/auth'));
+app.use('/api/admin',  require('./routes/admin'));
+app.use('/api/doctor', require('./routes/doctor'));
 
 // ── Health Check ──────────────────────────────
 app.get('/', (req, res) => {
@@ -37,4 +38,3 @@ app.use((err, req, res, next) => {
 // ── Start ─────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
-
