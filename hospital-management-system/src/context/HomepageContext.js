@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 const defaultState = {
   // ── ANNOUNCEMENT ──
@@ -71,10 +71,37 @@ const defaultState = {
   brandName: "MediCare",
 };
 
+const API = "http://localhost:5000/api/admin";
 const HomepageContext = createContext(null);
 
 export function HomepageProvider({ children }) {
   const [state, setState] = useState(defaultState);
+  const [loaded, setLoaded] = useState(false); // ← loading track karne ke liye
+
+  // ✅ FIX: App open hote hi DB se data load karo
+  useEffect(() => {
+    const loadFromDB = async () => {
+      try {
+        const token = localStorage.getItem("hospital_token");
+        const res = await fetch(`${API}/homepage`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (data.success && data.content) {
+          // DB ka saved data use karo, defaultState ko override karo
+          setState(prev => ({ ...prev, ...data.content }));
+        }
+      } catch (err) {
+        console.error("Homepage load error:", err);
+        // Error pe defaultState rehne do — koi problem nahi
+      } finally {
+        setLoaded(true);
+      }
+    };
+
+    loadFromDB();
+  }, []);
 
   const update = (key, value) =>
     setState(prev => ({ ...prev, [key]: value }));
@@ -87,10 +114,13 @@ export function HomepageProvider({ children }) {
     });
 
   const addItem = (key, item) =>
-    setState(prev => ({ ...prev, [key]: [...prev[key], item] }));
+    setState(prev => ({ ...prev, [key]: [...(prev[key] || []), item] }));
 
   const removeItem = (key, index) =>
     setState(prev => ({ ...prev, [key]: prev[key].filter((_, i) => i !== index) }));
+
+  // Optional: loading hone tak children render mat karo
+  if (!loaded) return null;
 
   return (
     <HomepageContext.Provider value={{ state, update, updateNested, addItem, removeItem }}>

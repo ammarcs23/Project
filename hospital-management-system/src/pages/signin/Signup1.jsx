@@ -242,7 +242,7 @@ export default function Signup1() {
                 {role === "Doctor" && mode === "login" && (
                   <div className="sl-field">
                     <label>Doctor ID <span className="sl-hint">(assigned by admin)</span></label>
-                    <input type="text" placeholder="e.g. D001" value={form.doctorId} onChange={set("doctorId")} />
+                    <input type="text" placeholder="Your Dr.ID" value={form.doctorId} onChange={set("doctorId")} />
                   </div>
                 )}
 
