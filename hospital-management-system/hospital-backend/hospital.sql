@@ -95,3 +95,43 @@ INSERT INTO doctors (user_id, doctor_id, specialty, experience, fee, phone) VALU
 UPDATE users 
 SET password='$2a$10$kOto4Sm95oMuxfhbx.G2AORehePpWaOtAWyMbfPojboaOnRvMgbpu' 
 WHERE email='admin@hospital.com';
+
+
+
+
+
+
+-- Homepage content table
+CREATE TABLE IF NOT EXISTS homepage_content (
+    id      INT PRIMARY KEY DEFAULT 1,
+    content LONGTEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Doctor specialties table (Admin se categories manage ho)
+CREATE TABLE IF NOT EXISTS specialties (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    icon        VARCHAR(50),
+    color       VARCHAR(20),
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Default specialties insert
+INSERT IGNORE INTO specialties (name, description, icon, color) VALUES
+('Cardiology',    'Heart and cardiovascular system',   'FaHeartbeat', '#3b82f6'),
+('Neurology',     'Brain and nervous system',          'FaBrain',     '#8b5cf6'),
+('Orthopedics',   'Bones, joints and muscles',        'FaBone',      '#10b981'),
+('Pediatrics',    'Children healthcare',               'FaBaby',      '#f59e0b'),
+('Ophthalmology', 'Eye care and vision',               'FaEye',       '#ef4444'),
+('Pulmonology',   'Lungs and respiratory system',     'FaLungs',     '#06b6d4'),
+('Dermatology',   'Skin, hair and nails',              'FaUserMd',    '#ec4899'),
+('General',       'General medicine and checkups',    'FaStethoscope','#64748b');
+
+
+
+use hospital_db;
+
+
