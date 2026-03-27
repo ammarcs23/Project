@@ -22,7 +22,6 @@ import DoctorDashboard from './pages/Doctor/Doctor';
 import BookAppointment from './pages/patient/BookAppointment';
 import AdminPanel      from './pages/admin/AdminDashboard';
 import Signup1         from './pages/signin/Signup1';
-import DoctorDashboard from './pages/Doctor/Doctor.jsx';
 
 import './App.css';
 
@@ -31,8 +30,7 @@ function App() {
         <HomepageProvider>
             <Router>
                 <Routes>
-
-                    {/* ── Public Routes ── */}
+                    {/* ── Public ── */}
                     <Route path="/" element={
                         <div className="App">
                             <AnnouncementBanner />
@@ -50,20 +48,21 @@ function App() {
 
                     <Route path="/login" element={<Signup1 />} />
 
-                    {/* ── Protected: Admin only ── */}
+                    {/* ── Admin ── */}
                     <Route path="/admin" element={
                         <ProtectedRoute allowedRole="admin">
                             <AdminPanel />
                         </ProtectedRoute>
                     } />
 
+                    {/* ── Doctor ── */}
                     <Route path="/doctor" element={
-                        <ProtectedRoute role="doctor">
+                        <ProtectedRoute allowedRole="doctor">
                             <DoctorDashboard />
                         </ProtectedRoute>
                     } />
 
-                    {/* ── Protected: Patient only ── */}
+                    {/* ── Patient ── */}
                     <Route path="/patient" element={
                         <ProtectedRoute allowedRole="patient">
                             <PatientModule />
@@ -75,7 +74,6 @@ function App() {
                             <BookAppointment />
                         </ProtectedRoute>
                     } />
-
                 </Routes>
             </Router>
         </HomepageProvider>

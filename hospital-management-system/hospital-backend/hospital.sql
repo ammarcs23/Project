@@ -134,4 +134,128 @@ INSERT IGNORE INTO specialties (name, description, icon, color) VALUES
 
 use hospital_db;
 
+-- Doctor Queries --
 
+
+
+
+
+
+USE hospital_db;
+ 
+-- ── 1. USERS ───────────────────────────────────
+CREATE TABLE IF NOT EXISTS users (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(100)        NOT NULL,
+    email       VARCHAR(100) UNIQUE NOT NULL,
+    password    VARCHAR(255)        NOT NULL,
+    role        ENUM('admin','doctor','patient') NOT NULL DEFAULT 'patient',
+    is_active   BOOLEAN             NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+ 
+-- ── 2. DOCTORS ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS doctors (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT          NOT NULL UNIQUE,
+    doctor_id   VARCHAR(10)  NOT NULL UNIQUE,
+    specialty   VARCHAR(100) NOT NULL,
+    experience  VARCHAR(20),
+    fee         DECIMAL(10,2),
+    phone       VARCHAR(20),
+    avatar      TEXT,
+    status      ENUM('Active','On Leave','Inactive') DEFAULT 'Active',
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+ 
+-- ── 3. PATIENTS ────────────────────────────────
+CREATE TABLE IF NOT EXISTS patients (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT         NOT NULL UNIQUE,
+    age         INT,
+    gender      ENUM('Male','Female','Other'),
+    blood_type  VARCHAR(5),
+    phone       VARCHAR(20),
+    address     TEXT,
+    condition_  VARCHAR(255),
+    avatar      TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+ 
+-- ── 4. APPOINTMENTS ────────────────────────────
+CREATE TABLE IF NOT EXISTS appointments (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id    INT  NOT NULL,
+    doctor_id     INT  NOT NULL,
+    date          DATE NOT NULL,
+    time_slot     VARCHAR(20) NOT NULL,
+    visit_type    ENUM('in-person','online') DEFAULT 'in-person',
+    status        ENUM('Pending','Confirmed','Completed','Cancelled') DEFAULT 'Pending',
+    problem       TEXT,
+    notes         TEXT,
+    ai_analysis   TEXT        DEFAULT NULL,
+    ai_risk       VARCHAR(20) DEFAULT NULL,
+    cancel_reason TEXT        DEFAULT NULL,
+    created_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id)  REFERENCES doctors(id)  ON DELETE CASCADE
+);
+ 
+-- ── 5. DOCTOR SCHEDULES ────────────────────────
+CREATE TABLE IF NOT EXISTS doctor_schedules (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id     INT        NOT NULL,
+    day           VARCHAR(10) NOT NULL,
+    start_time    VARCHAR(8)  NOT NULL,
+    end_time      VARCHAR(8)  NOT NULL,
+    break_start   VARCHAR(8)  DEFAULT NULL,
+    break_end     VARCHAR(8)  DEFAULT NULL,
+    slot_duration INT         NOT NULL DEFAULT 30,
+    is_available  BOOLEAN     DEFAULT TRUE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_doctor_day (doctor_id, day)
+);
+ 
+-- ── 6. HOMEPAGE CONTENT ────────────────────────
+CREATE TABLE IF NOT EXISTS homepage_content (
+    id         INT PRIMARY KEY DEFAULT 1,
+    content    LONGTEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+ 
+-- ── 7. APPOINTMENT SLOTS (optional tracking) ───
+CREATE TABLE IF NOT EXISTS appointment_slots (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id   INT      NOT NULL,
+    slot_date   DATE     NOT NULL,
+    slot_time   VARCHAR(8) NOT NULL,
+    is_booked   BOOLEAN  DEFAULT FALSE,
+    appt_id     INT      DEFAULT NULL,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_slot (doctor_id, slot_date, slot_time)
+);
+ 
+ALTER TABLE appointment_slots
+ADD CONSTRAINT fk_slot_appt
+FOREIGN KEY (appt_id) REFERENCES appointments(id) ON DELETE SET NULL;
+ 
+-- ═══════════════════════════════════════════════
+-- STEP 1: Run generateHash.js to get bcrypt hash
+--   cd hospital-backend
+--   node generateHash.js
+--
+-- STEP 2: Copy the hash and run this INSERT:
+-- ═══════════════════════════════════════════════
+ 
+-- INSERT INTO users (name, email, password, role) VALUES
+-- ('Super Admin', 'admin@hospital.com', 'PASTE_HASH_HERE', 'admin');
+ 
+-- ─── NOTE ──────────────────────────────────────
+-- Doctors are added ONLY via Admin Dashboard.
+-- Admin logs in → Doctors → Add Doctor.
+-- System auto-generates Doctor ID (D001, D002...).
+-- Doctor uses email + password + Doctor ID to login.

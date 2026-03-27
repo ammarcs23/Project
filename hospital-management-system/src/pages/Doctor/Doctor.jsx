@@ -163,15 +163,13 @@ export default function DoctorDashboard() {
         if(d.success) { setDoctor(d.doctor); setProfForm({name:d.doctor.name,specialty:d.doctor.specialty,experience:d.doctor.experience||"",fee:d.doctor.fee||"",phone:d.doctor.phone||""}); setProfPrev(d.doctor.avatar); }
         if(a.success) setAppointments(a.appointments);
         if(p.success) setPatients(p.patients);
-        if(s.success) {
-            setSchedule(s.schedule);
-            // Init schEdit with existing schedule or defaults
-            const existing = {};
-            s.schedule.forEach(r => existing[r.day]=r);
-            setSchEdit(DAYS.map(day => existing[day] || { day, start_time:"09:00", end_time:"17:00", break_start:"13:00", break_end:"14:00", slot_duration:30, is_available:false }));
-        } else {
-            setSchEdit(DAYS.map(day=>({day,start_time:"09:00",end_time:"17:00",break_start:"13:00",break_end:"14:00",slot_duration:30,is_available:false})));
-        }
+        // Always init all 7 days — merge DB data on top
+        const existing = {};
+        if(s.success) { setSchedule(s.schedule); s.schedule.forEach(r => existing[r.day]=r); }
+        setSchEdit(DAYS.map(day => existing[day]
+            ? { ...existing[day] }
+            : { day, start_time:"09:00", end_time:"17:00", break_start:"13:00", break_end:"14:00", slot_duration:30, is_available:false }
+        ));
     };
     useEffect(() => { loadAll(); }, []);
 

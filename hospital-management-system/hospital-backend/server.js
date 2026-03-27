@@ -15,9 +15,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Routes ────────────────────────────────────
-app.use('/api/auth',   require('./routes/auth'));
-app.use('/api/admin',  require('./routes/admin'));
-app.use('/api/doctor', require('./routes/doctor'));
+app.use('/api/auth',    require('./routes/auth'));
+app.use('/api/admin',   require('./routes/admin'));
+app.use('/api/doctor',  require('./routes/doctorRoutes'));
+app.use('/api/patient', require('./routes/patient'));
 
 // ── Health Check ──────────────────────────────
 app.get('/', (req, res) => {
