@@ -1,5 +1,5 @@
 // hospital-backend/controllers/patientController.js
-const db = require('../config/db');
+const db = require('../config/Db');
 
 // ══════════════════════════════════════════════
 //  ADMIN — PATIENT CRUD
