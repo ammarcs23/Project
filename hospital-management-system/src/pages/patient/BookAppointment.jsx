@@ -1,780 +1,645 @@
-import { useState, useRef, useEffect } from "react";
-
-/* ── DATA ─────────────────────────────────────── */
-const doctorCategories = [
-  { specialty: "Cardiologist",      icon: "🫀", desc: "Heart & cardiovascular issues",   doctors: ["Dr. Emily Chen", "Dr. Tariq Mehmood"] },
-  { specialty: "Endocrinologist",   icon: "🩸", desc: "Diabetes, thyroid, hormones",     doctors: ["Dr. James Liu", "Dr. Amna Siddiqui"] },
-  { specialty: "Dermatologist",     icon: "🧴", desc: "Skin, hair & nail problems",      doctors: ["Dr. Sarah Malik", "Dr. Hassan Raza"] },
-  { specialty: "General Physician", icon: "🩺", desc: "General health & checkups",       doctors: ["Dr. Hamid Raza", "Dr. Fatima Zahra"] },
-  { specialty: "Neurologist",       icon: "🧠", desc: "Brain, nerves & headaches",       doctors: ["Dr. Ali Nawaz", "Dr. Sana Baig"] },
-  { specialty: "Orthopedic",        icon: "🦴", desc: "Bones, joints & muscle pain",     doctors: ["Dr. Usman Butt", "Dr. Zara Khan"] },
-];
-
-const timeSlots = ["09:00 AM","10:00 AM","10:30 AM","11:00 AM","12:00 PM","02:00 PM","03:00 PM","04:00 PM"];
-
-const statusColor = {
-  Confirmed: { bg:"#dcfce7", color:"#16a34a" },
-  Pending:   { bg:"#fef9c3", color:"#ca8a04" },
-  Cancelled: { bg:"#fee2e2", color:"#dc2626" },
-  Completed: { bg:"#e0f2fe", color:"#0284c7" },
-};
-
-const PATIENT_AVATAR = "https://randomuser.me/api/portraits/men/32.jpg";
-const DR_AVATARS = {
-  "Dr. Emily Chen":   "https://randomuser.me/api/portraits/women/44.jpg",
-  "Dr. James Liu":    "https://randomuser.me/api/portraits/men/46.jpg",
-  "Dr. Sarah Malik":  "https://randomuser.me/api/portraits/women/65.jpg",
-  "Dr. Hamid Raza":   "https://randomuser.me/api/portraits/men/61.jpg",
-  "Dr. Ali Nawaz":    "https://randomuser.me/api/portraits/men/55.jpg",
-  "Dr. Usman Butt":   "https://randomuser.me/api/portraits/men/22.jpg",
-  "Dr. Tariq Mehmood":"https://randomuser.me/api/portraits/men/36.jpg",
-  "Dr. Amna Siddiqui":"https://randomuser.me/api/portraits/women/33.jpg",
-  "Dr. Hassan Raza":  "https://randomuser.me/api/portraits/men/41.jpg",
-  "Dr. Fatima Zahra": "https://randomuser.me/api/portraits/women/55.jpg",
-  "Dr. Sana Baig":    "https://randomuser.me/api/portraits/women/22.jpg",
-  "Dr. Zara Khan":    "https://randomuser.me/api/portraits/women/11.jpg",
-};
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 /* ══════════════════════════════════════════════
-   CONSULTATION CHAT MODAL
-   Shows: AI tab + Dr tab (shared convo)
+   CONSTANTS & HELPERS
 ══════════════════════════════════════════════ */
-function ConsultationChat({ appt, onClose }) {
-  const [activeTab, setActiveTab]     = useState("ai");   // "ai" | "doctor"
-  const [chatRole, setChatRole]       = useState("patient"); // "patient" | "doctor"
+const API   = "http://localhost:5000/api";
+const ANTH  = "https://api.anthropic.com/v1/messages";
+const MODEL = "claude-sonnet-4-20250514";
 
-  // Shared doctor-patient conversation
-  const [drConvo, setDrConvo]         = useState([
-    { role:"doctor", text:`Hello! I'm ${appt.doctor}. I've reviewed your notes. How are you feeling today?`, time:"10:01 AM" },
-  ]);
-  const [drInput, setDrInput]         = useState("");
-  const [drLoading, setDrLoading]     = useState(false);
+const apiCall = async (url, method="GET", body=null) => {
+    const token = localStorage.getItem("hospital_token");
+    const opts  = { method, headers:{ Authorization:`Bearer ${token}`, "Content-Type":"application/json" }};
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(`${API}${url}`, opts);
+    return res.json();
+};
 
-  // AI chat
-  const [aiMessages, setAiMessages]   = useState([]);
-  const [aiInput, setAiInput]         = useState("");
-  const [aiLoading, setAiLoading]     = useState(false);
-  const [aiAnalysis, setAiAnalysis]   = useState(appt.aiAnalysis || "");
-  const [analysisLoading, setAnalysisLoading] = useState(false);
+const claude = async (system, msgs, max_tokens=800) => {
+    const res = await fetch(ANTH,{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ model:MODEL, max_tokens, system, messages:msgs })
+    });
+    const d = await res.json();
+    return d.content?.[0]?.text || "";
+};
 
-  const drEndRef  = useRef(null);
-  const aiEndRef  = useRef(null);
+const fmtDate = d => d ? new Date(d+"T00:00:00").toLocaleDateString("en-PK",{weekday:"short",day:"numeric",month:"short",year:"numeric"}) : "—";
+const fmtTime = t => { if(!t) return "—"; const [h,m]=t.split(":"); const hh=parseInt(h); return `${hh>12?hh-12:hh||12}:${m} ${hh>=12?"PM":"AM"}`; };
+const minDate = () => { const d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().split("T")[0]; };
+const uiAvatar = (name,bg="0d4f4f") => `https://ui-avatars.com/api/?name=${encodeURIComponent(name||"P")}&background=${bg}&color=fff`;
 
-  useEffect(() => { drEndRef.current?.scrollIntoView({ behavior:"smooth" }); }, [drConvo]);
-  useEffect(() => { aiEndRef.current?.scrollIntoView({ behavior:"smooth" }); }, [aiMessages]);
+const STATUS_CLR = { Confirmed:["#dbeafe","#1d4ed8"], Pending:["#fef9c3","#b45309"], Cancelled:["#fee2e2","#dc2626"], Completed:["#dcfce7","#16a34a"] };
+const RISK_CLR   = { Low:["#dcfce7","#16a34a"], Medium:["#fef9c3","#ca8a04"], High:["#fee2e2","#dc2626"] };
 
-  const now = () => new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+const Badge = ({s, map=STATUS_CLR}) => { const [bg,tc]=map[s]||["#f1f5f9","#64748b"]; return <span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:bg,color:tc,whiteSpace:"nowrap"}}>{s}</span>; };
+const Dots  = () => <div style={{display:"flex",gap:5,padding:"10px 14px",background:"#f1f5f9",borderRadius:"4px 14px 14px 14px"}}>{[0,1,2].map(i=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#14b8a6",animation:`bounce 1s infinite ${i*0.15}s`}}/>)}</div>;
 
-  /* ── Send to Dr chat ── */
-  const sendDrMsg = async () => {
-    const msg = drInput.trim(); if (!msg) return;
-    const sender = chatRole;
-    setDrConvo(p => [...p, { role:sender, text:msg, time:now() }]);
-    setDrInput("");
+/* ══════════════════════════════════════════════
+   CONSULTATION MODAL (Online appointments)
+══════════════════════════════════════════════ */
+function ConsultationModal({ appt, onClose, onSaveAnalysis }) {
+    const [tab,        setTab]        = useState("ai");
+    const [chatRole,   setChatRole]   = useState("patient");
+    const [drConvo,    setDrConvo]    = useState([{role:"doctor", text:`Hello! I'm ${appt.doctor_name}. I've reviewed your notes. How are you feeling today?`, time:""}]);
+    const [drInput,    setDrInput]    = useState("");
+    const [drLoading,  setDrLoading]  = useState(false);
+    const [aiMsgs,     setAiMsgs]     = useState([]);
+    const [aiInput,    setAiInput]    = useState("");
+    const [aiLoading,  setAiLoading]  = useState(false);
+    const [summary,    setSummary]    = useState(appt.ai_analysis||"");
+    const [summLoad,   setSummLoad]   = useState(false);
+    const [aiRisk,     setAiRisk]     = useState(appt.ai_risk||"Low");
+    const drRef = useRef(); const aiRef = useRef();
 
-    // If doctor side: AI generates doctor reply automatically
-    if (chatRole === "patient") {
-      setDrLoading(true);
-      try {
-        const history = drConvo.map(m => ({
-          role: m.role === "doctor" ? "assistant" : "user",
-          content: m.text,
-        }));
-        const res = await fetch("https://api.anthropic.com/v1/messages", {
-          method:"POST", headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({
-            model:"claude-sonnet-4-20250514", max_tokens:600,
-            system:`You are ${appt.doctor}, a ${appt.specialty}. You are in a live online consultation with a patient. Patient problem: "${appt.problem}". Reply as the doctor — warm, professional, concise. Ask follow-up questions. Give medical advice carefully. Max 3 sentences.`,
-            messages: [...history, { role:"user", content:msg }],
-          }),
-        });
-        const data = await res.json();
-        const reply = data.content?.[0]?.text || "I see, let me check that for you.";
-        setTimeout(() => {
-          setDrConvo(p => [...p, { role:"doctor", text:reply, time:now() }]);
-          setDrLoading(false);
-        }, 800);
-      } catch {
-        setDrConvo(p => [...p, { role:"doctor", text:"Sorry, I'm having connectivity issues. Please try again.", time:now() }]);
-        setDrLoading(false);
-      }
-    }
-  };
+    useEffect(()=>{ drRef.current?.scrollIntoView({behavior:"smooth"}); },[drConvo]);
+    useEffect(()=>{ aiRef.current?.scrollIntoView({behavior:"smooth"}); },[aiMsgs]);
 
-  /* ── Send to AI chat ── */
-  const sendAiMsg = async () => {
-    const msg = aiInput.trim(); if (!msg) return;
-    setAiMessages(p => [...p, { role:"user", text:msg, time:now() }]);
-    setAiInput("");
-    setAiLoading(true);
-    try {
-      const history = aiMessages.map(m => ({ role: m.role==="user"?"user":"assistant", content:m.text }));
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          model:"claude-sonnet-4-20250514", max_tokens:800,
-          system:`You are a helpful hospital AI assistant. Patient has an online consultation with ${appt.doctor} (${appt.specialty}). Problem: ${appt.problem}. Help patient understand symptoms, prepare questions for the doctor, and give general health tips. Be warm, concise. Never diagnose definitively.`,
-          messages:[...history, { role:"user", content:msg }],
-        }),
-      });
-      const data = await res.json();
-      const reply = data.content?.[0]?.text || "Sorry, could not process.";
-      setAiMessages(p => [...p, { role:"ai", text:reply, time:now() }]);
-    } catch {
-      setAiMessages(p => [...p, { role:"ai", text:"⚠️ AI unavailable right now.", time:now() }]);
-    }
-    setAiLoading(false);
-  };
+    const now = () => new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+    const drAv = appt.doctor_avatar || uiAvatar(appt.doctor_name,"0d4f4f");
 
-  /* ── Generate AI Analysis ── */
-  const generateAnalysis = async () => {
-    setAnalysisLoading(true);
-    try {
-      const convo = aiMessages.map(m=>`${m.role==="user"?"Patient":"AI"}: ${m.text}`).join("\n");
-      const drChat = drConvo.map(m=>`${m.role==="doctor"?"Doctor":"Patient"}: ${m.text}`).join("\n");
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          model:"claude-sonnet-4-20250514", max_tokens:600,
-          system:"You are a medical AI. Based on all conversations, write a concise clinical summary: symptoms mentioned, key findings, and recommended next steps. Max 100 words. Professional tone.",
-          messages:[{ role:"user", content:`Doctor: ${appt.doctor} (${appt.specialty})\nProblem: ${appt.problem}\n\nAI Chat:\n${convo||"None"}\n\nDoctor-Patient Chat:\n${drChat}\n\nProvide summary.` }],
-        }),
-      });
-      const data = await res.json();
-      setAiAnalysis(data.content?.[0]?.text || "Could not generate.");
-    } catch { setAiAnalysis("⚠️ Could not generate analysis."); }
-    setAnalysisLoading(false);
-  };
+    const sendDrMsg = async () => {
+        const msg=drInput.trim(); if(!msg) return;
+        setDrConvo(p=>[...p,{role:chatRole,text:msg,time:now()}]); setDrInput("");
+        if(chatRole==="patient") {
+            setDrLoading(true);
+            try {
+                const hist=drConvo.map(m=>({role:m.role==="doctor"?"assistant":"user",content:m.text}));
+                const reply = await claude(
+                    `You are ${appt.doctor_name}, a ${appt.specialty}. Patient's problem: "${appt.problem}". Reply warmly and professionally. Max 3 sentences.`,
+                    [...hist,{role:"user",content:msg}], 500
+                );
+                setTimeout(()=>{ setDrConvo(p=>[...p,{role:"doctor",text:reply,time:now()}]); setDrLoading(false); },700);
+            } catch { setDrConvo(p=>[...p,{role:"doctor",text:"Sorry, connectivity issue.",time:now()}]); setDrLoading(false); }
+        }
+    };
 
-  const drAvatar = DR_AVATARS[appt.doctor] || "https://randomuser.me/api/portraits/men/75.jpg";
+    const sendAiMsg = async () => {
+        const msg=aiInput.trim(); if(!msg) return;
+        setAiMsgs(p=>[...p,{role:"user",text:msg,time:now()}]); setAiInput(""); setAiLoading(true);
+        try {
+            const hist=aiMsgs.map(m=>({role:m.role==="user"?"user":"assistant",content:m.text}));
+            const reply=await claude(
+                `You are a hospital AI assistant. Patient has appointment with ${appt.doctor_name} (${appt.specialty}). Problem: ${appt.problem}. Help them understand symptoms. Never diagnose definitively.`,
+                [...hist,{role:"user",content:msg}]
+            );
+            setAiMsgs(p=>[...p,{role:"ai",text:reply,time:now()}]);
+        } catch { setAiMsgs(p=>[...p,{role:"ai",text:"⚠️ AI unavailable.",time:now()}]); }
+        setAiLoading(false);
+    };
 
-  return (
-    <div style={{
-      position:"fixed", inset:0, background:"rgba(0,0,0,0.55)",
-      zIndex:100, display:"flex", alignItems:"center", justifyContent:"center",
-      padding:12,
-    }}>
-      <div style={{
-        background:"white", borderRadius:20, width:"100%", maxWidth:860,
-        maxHeight:"92vh", display:"flex", flexDirection:"column",
-        boxShadow:"0 20px 60px rgba(0,0,0,0.3)", overflow:"hidden",
-      }}>
+    const generateSummary = async () => {
+        setSummLoad(true);
+        try {
+            const aiTxt=aiMsgs.map(m=>`${m.role==="user"?"Patient":"AI"}: ${m.text}`).join("\n");
+            const drTxt=drConvo.map(m=>`${m.role==="doctor"?"Doctor":"Patient"}: ${m.text}`).join("\n");
+            const text=await claude(
+                `You are a medical AI. Write a clinical summary. Start with "Risk Level: Low/Medium/High". Then summarize symptoms and next steps. Max 120 words.`,
+                [{role:"user",content:`Doctor: ${appt.doctor_name} (${appt.specialty})\nProblem: ${appt.problem}\nAI Chat:\n${aiTxt||"None"}\nDoctor Chat:\n${drTxt}`}]
+            );
+            const m=text.match(/Risk Level:\s*(Low|Medium|High)/i);
+            if(m) setAiRisk(m[1]);
+            setSummary(text);
+        } catch { setSummary("⚠️ Could not generate."); }
+        setSummLoad(false);
+    };
 
-        {/* ── MODAL HEADER ── */}
-        <div style={{
-          background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",
-          padding:"14px 20px", display:"flex", alignItems:"center", justifyContent:"space-between",
-          flexShrink:0,
-        }}>
-          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            <img src={drAvatar} alt={appt.doctor}
-              style={{ width:42, height:42, borderRadius:"50%", objectFit:"cover",
-                border:"2px solid rgba(255,255,255,0.5)" }} />
-            <div>
-              <div style={{ color:"white", fontWeight:800, fontSize:15 }}>{appt.doctor}</div>
-              <div style={{ color:"rgba(255,255,255,0.75)", fontSize:12 }}>
-                {appt.specialty} · 💻 Online Consultation
-              </div>
+    const saveAndClose = async () => {
+        if(summary) await onSaveAnalysis(appt.id, summary, aiRisk);
+        onClose();
+    };
+
+    return (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
+            <div style={{background:"white",borderRadius:20,width:"100%",maxWidth:860,maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)",overflow:"hidden"}}>
+                {/* Header */}
+                <div style={{background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                        <img src={drAv} alt="" style={{width:42,height:42,borderRadius:"50%",objectFit:"cover",border:"2px solid rgba(255,255,255,0.4)"}}/>
+                        <div>
+                            <div style={{color:"white",fontWeight:800,fontSize:15}}>{appt.doctor_name}</div>
+                            <div style={{color:"rgba(255,255,255,0.75)",fontSize:12}}>{appt.specialty} · 💻 Online Consultation</div>
+                        </div>
+                    </div>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                        <div style={{display:"flex",background:"rgba(255,255,255,0.15)",borderRadius:20,padding:3}}>
+                            {["patient","doctor"].map(r=>(
+                                <button key={r} onClick={()=>setChatRole(r)} style={{padding:"5px 12px",borderRadius:16,border:"none",cursor:"pointer",fontSize:11,fontWeight:700,background:chatRole===r?"white":"transparent",color:chatRole===r?"#0d4f4f":"rgba(255,255,255,0.8)"}}>
+                                    {r==="patient"?"👤 Patient":"👨‍⚕️ Doctor"}
+                                </button>
+                            ))}
+                        </div>
+                        <button onClick={saveAndClose} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+                    </div>
+                </div>
+                {/* Tabs */}
+                <div style={{display:"flex",borderBottom:"2px solid #f1f5f9",flexShrink:0}}>
+                    {[["ai","🤖 AI Assistant","Symptom help"],["doctor","💬 Doctor Chat","Live consultation"],["summary","📋 Summary","Clinical notes"]].map(([id,label,sub])=>(
+                        <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"10px 8px",border:"none",cursor:"pointer",background:tab===id?"white":"#f8fafc",borderBottom:tab===id?"2px solid #0d4f4f":"2px solid transparent"}}>
+                            <div style={{fontWeight:700,fontSize:13,color:tab===id?"#0d4f4f":"#64748b"}}>{label}</div>
+                            <div style={{fontSize:10,color:"#94a3b8",marginTop:1}}>{sub}</div>
+                        </button>
+                    ))}
+                </div>
+                <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+                    {/* AI Tab */}
+                    {tab==="ai"&&(
+                        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+                            <div style={{flex:1,overflowY:"auto",padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
+                                {!aiMsgs.length&&<div style={{background:"#f0fdfb",borderRadius:"4px 12px 12px 12px",padding:"12px 16px",fontSize:13,color:"#0f172a",maxWidth:"85%"}}>
+                                    👋 Hi! I'm your AI assistant. Ask about your symptoms or I'll help you prepare for your appointment with {appt.doctor_name}.<br/><br/><strong>Problem:</strong> {appt.problem}
+                                </div>}
+                                {aiMsgs.map((m,i)=>(
+                                    <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",alignItems:"flex-end",gap:8}}>
+                                        {m.role==="ai"&&<div style={{fontSize:22,flexShrink:0}}>🤖</div>}
+                                        <div style={{maxWidth:"78%"}}>
+                                            <div style={{padding:"10px 14px",fontSize:13,lineHeight:1.6,borderRadius:m.role==="user"?"14px 4px 14px 14px":"4px 14px 14px 14px",background:m.role==="user"?"#0d4f4f":"#f1f5f9",color:m.role==="user"?"white":"#1e293b"}}>{m.text}</div>
+                                            <div style={{fontSize:10,color:"#94a3b8",marginTop:3,textAlign:m.role==="user"?"right":"left"}}>{m.time}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {aiLoading&&<div style={{display:"flex",gap:8,alignItems:"center"}}><div style={{fontSize:22}}>🤖</div><Dots/></div>}
+                                <div ref={aiRef}/>
+                            </div>
+                            <div style={{padding:"10px 14px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8,flexShrink:0}}>
+                                <input placeholder="Ask about symptoms..." value={aiInput} onChange={e=>setAiInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendAiMsg()} style={{flex:1,padding:"10px 14px",borderRadius:12,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc"}}/>
+                                <button onClick={sendAiMsg} style={{background:"#0d4f4f",color:"white",border:"none",borderRadius:12,padding:"10px 16px",cursor:"pointer",fontWeight:700,fontSize:14}}>➤</button>
+                            </div>
+                        </div>
+                    )}
+                    {/* Doctor Tab */}
+                    {tab==="doctor"&&(
+                        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+                            <div style={{background:"#f0fdf4",padding:"8px 16px",borderBottom:"1px solid #dcfce7",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                                <div style={{width:8,height:8,borderRadius:"50%",background:"#16a34a",animation:"pulse 2s infinite"}}/>
+                                <span style={{fontSize:12,color:"#15803d",fontWeight:600}}>{appt.doctor_name} is online</span>
+                                <span style={{marginLeft:"auto",fontSize:11,color:"#94a3b8"}}>As: <strong>{chatRole==="patient"?"Patient":"Doctor"}</strong></span>
+                            </div>
+                            <div style={{flex:1,overflowY:"auto",padding:"14px 16px",display:"flex",flexDirection:"column",gap:12}}>
+                                {drConvo.map((m,i)=>{
+                                    const isMe=(chatRole==="patient"&&m.role==="patient")||(chatRole==="doctor"&&m.role==="doctor");
+                                    return (
+                                        <div key={i} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",alignItems:"flex-end",gap:8}}>
+                                            {!isMe&&<img src={m.role==="doctor"?drAv:uiAvatar("Patient","14b8a6")} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>}
+                                            <div style={{maxWidth:"75%"}}>
+                                                {!isMe&&<div style={{fontSize:11,color:"#64748b",marginBottom:3,fontWeight:600}}>{m.role==="doctor"?appt.doctor_name:"Patient"}</div>}
+                                                <div style={{padding:"11px 15px",fontSize:13,lineHeight:1.6,borderRadius:isMe?"14px 4px 14px 14px":"4px 14px 14px 14px",background:isMe?(chatRole==="doctor"?"#1a3fce":"#0d4f4f"):"white",color:isMe?"white":"#1e293b",boxShadow:isMe?"none":"0 1px 4px rgba(0,0,0,0.08)",border:isMe?"none":"1px solid #f1f5f9"}}>{m.text}</div>
+                                                <div style={{fontSize:10,color:"#94a3b8",marginTop:3,textAlign:isMe?"right":"left"}}>{m.time}</div>
+                                            </div>
+                                            {isMe&&<img src={chatRole==="doctor"?drAv:uiAvatar("Patient","14b8a6")} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>}
+                                        </div>
+                                    );
+                                })}
+                                {drLoading&&<div style={{display:"flex",alignItems:"flex-end",gap:8}}><img src={drAv} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover"}}/><Dots/></div>}
+                                <div ref={drRef}/>
+                            </div>
+                            <div style={{padding:"10px 14px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+                                <img src={chatRole==="doctor"?drAv:uiAvatar("Patient","14b8a6")} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
+                                <input placeholder={chatRole==="patient"?"Message your doctor...":`Replying as ${appt.doctor_name}...`} value={drInput} onChange={e=>setDrInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendDrMsg()} style={{flex:1,padding:"10px 14px",borderRadius:12,border:`1.5px solid ${chatRole==="doctor"?"#1a3fce":"#0d4f4f"}`,fontSize:13,outline:"none",background:"#f8fafc"}}/>
+                                <button onClick={sendDrMsg} style={{background:chatRole==="doctor"?"#1a3fce":"#0d4f4f",color:"white",border:"none",borderRadius:12,padding:"10px 16px",cursor:"pointer",fontWeight:700,fontSize:14}}>➤</button>
+                            </div>
+                        </div>
+                    )}
+                    {/* Summary Tab */}
+                    {tab==="summary"&&(
+                        <div style={{flex:1,overflowY:"auto",padding:"18px 20px"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,marginBottom:16}}>
+                                <div style={{fontWeight:800,fontSize:15,color:"#0f172a"}}>📋 Clinical Summary</div>
+                                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                                    <div style={{display:"flex",gap:6}}>
+                                        {["Low","Medium","High"].map(r=>(
+                                            <button key={r} onClick={()=>setAiRisk(r)} style={{padding:"5px 12px",borderRadius:20,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,background:aiRisk===r?(r==="Low"?"#16a34a":r==="Medium"?"#d97706":"#dc2626"):"#f1f5f9",color:aiRisk===r?"white":"#64748b"}}>
+                                                {r}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button onClick={generateSummary} disabled={summLoad} style={{background:summLoad?"#e2e8f0":"linear-gradient(120deg,#0d4f4f,#14b8a6)",color:summLoad?"#94a3b8":"white",border:"none",borderRadius:10,padding:"8px 16px",fontWeight:700,fontSize:12,cursor:summLoad?"not-allowed":"pointer"}}>
+                                        {summLoad?"Generating...":"⚡ Generate"}
+                                    </button>
+                                </div>
+                            </div>
+                            <div style={{background:"#f8fafc",borderRadius:14,padding:"14px 16px",marginBottom:14,border:"1px solid #e2e8f0"}}>
+                                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px 16px"}}>
+                                    {[["Doctor",appt.doctor_name],["Specialty",appt.specialty],["Date",fmtDate(appt.date)],["Time",fmtTime(appt.time_slot)],["Type",appt.visit_type==="online"?"💻 Online":"🏥 In-Person"],["Status",appt.status]].map(([l,v])=>(
+                                        <div key={l}><span style={{fontSize:11,color:"#94a3b8"}}>{l}: </span><span style={{fontSize:12,fontWeight:600,color:"#1e293b"}}>{v}</span></div>
+                                    ))}
+                                </div>
+                                <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #e2e8f0"}}><span style={{fontSize:11,color:"#94a3b8"}}>Problem: </span><span style={{fontSize:12,color:"#1e293b"}}>{appt.problem}</span></div>
+                            </div>
+                            <div style={{background:"white",borderRadius:14,padding:"14px 16px",border:"1px solid #e2e8f0"}}>
+                                <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:10}}>🧠 AI Analysis</div>
+                                <textarea value={summary} onChange={e=>setSummary(e.target.value)} rows={6} placeholder="Click ⚡ Generate to create summary..." style={{width:"100%",padding:"12px 14px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",resize:"vertical",fontFamily:"inherit",boxSizing:"border-box",background:"#f8fafc",lineHeight:1.7}}/>
+                                <button onClick={saveAndClose} style={{marginTop:10,width:"100%",padding:"11px",borderRadius:10,border:"none",background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",color:"white",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                                    💾 Save & Close
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            {/* Role toggle */}
-            <div style={{ display:"flex", background:"rgba(255,255,255,0.15)", borderRadius:20, padding:3 }}>
-              {["patient","doctor"].map(r => (
-                <button key={r} onClick={() => setChatRole(r)} style={{
-                  padding:"5px 12px", borderRadius:16, border:"none", cursor:"pointer",
-                  fontSize:11, fontWeight:700, transition:"all 0.2s",
-                  background: chatRole===r ? "white" : "transparent",
-                  color: chatRole===r ? "#0d4f4f" : "rgba(255,255,255,0.8)",
-                }}>
-                  {r==="patient" ? "👤 Patient" : "👨‍⚕️ Doctor"}
-                </button>
-              ))}
-            </div>
-            <button onClick={onClose} style={{
-              background:"rgba(255,255,255,0.2)", border:"none", color:"white",
-              borderRadius:"50%", width:32, height:32, cursor:"pointer",
-              fontSize:16, display:"flex", alignItems:"center", justifyContent:"center",
-            }}>✕</button>
-          </div>
+            <style>{`@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}} @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
         </div>
-
-        {/* ── TABS ── */}
-        <div style={{ display:"flex", borderBottom:"2px solid #f1f5f9", flexShrink:0 }}>
-          {[
-            { id:"ai",     label:"🤖 AI Assistant",          sub:"Symptom help & prep" },
-            { id:"doctor", label:`💬 Dr. ${appt.doctor.split(" ").slice(-1)[0]}`, sub:"Live consultation" },
-            { id:"summary",label:"📋 Summary",               sub:"AI clinical notes" },
-          ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-              flex:1, padding:"10px 8px", border:"none", cursor:"pointer",
-              background: activeTab===tab.id ? "white" : "#f8fafc",
-              borderBottom: activeTab===tab.id ? "2px solid #0d4f4f" : "2px solid transparent",
-              transition:"all 0.2s",
-            }}>
-              <div style={{ fontWeight:700, fontSize:13,
-                color: activeTab===tab.id ? "#0d4f4f" : "#64748b" }}>{tab.label}</div>
-              <div style={{ fontSize:10, color:"#94a3b8", marginTop:1 }}>{tab.sub}</div>
-            </button>
-          ))}
-        </div>
-
-        {/* ── TAB CONTENT ── */}
-        <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
-
-          {/* ── AI CHAT TAB ── */}
-          {activeTab==="ai" && (
-            <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-              <div style={{ flex:1, overflowY:"auto", padding:"14px 16px",
-                display:"flex", flexDirection:"column", gap:10 }}>
-                {!aiMessages.length && (
-                  <div style={{ background:"#f0fdfb", borderRadius:"4px 12px 12px 12px",
-                    padding:"12px 16px", fontSize:13, color:"#0f172a", maxWidth:"85%" }}>
-                    👋 Hi! I'm your AI health assistant. Ask me anything about your symptoms, or I can help you prepare questions for {appt.doctor}.
-                    <br/><br/><strong>Problem noted:</strong> {appt.problem}
-                  </div>
-                )}
-                {aiMessages.map((m,i) => (
-                  <div key={i} style={{ display:"flex", justifyContent:m.role==="user"?"flex-end":"flex-start",
-                    alignItems:"flex-end", gap:8 }}>
-                    {m.role==="ai" && <div style={{ fontSize:22, flexShrink:0 }}>🤖</div>}
-                    <div style={{ maxWidth:"78%" }}>
-                      <div style={{
-                        padding:"10px 14px", fontSize:13, lineHeight:1.6,
-                        borderRadius: m.role==="user" ? "14px 4px 14px 14px" : "4px 14px 14px 14px",
-                        background: m.role==="user" ? "#0d4f4f" : "#f1f5f9",
-                        color: m.role==="user" ? "white" : "#1e293b",
-                      }}>{m.text}</div>
-                      <div style={{ fontSize:10, color:"#94a3b8", marginTop:3,
-                        textAlign: m.role==="user"?"right":"left" }}>{m.time}</div>
-                    </div>
-                    {m.role==="user" && <img src={PATIENT_AVATAR} alt="you"
-                      style={{ width:28, height:28, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />}
-                  </div>
-                ))}
-                {aiLoading && (
-                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                    <div style={{ fontSize:22 }}>🤖</div>
-                    <div style={{ display:"flex", gap:5, padding:"10px 14px",
-                      background:"#f1f5f9", borderRadius:"4px 14px 14px 14px" }}>
-                      {[0,1,2].map(i=>(
-                        <div key={i} style={{ width:7, height:7, borderRadius:"50%", background:"#14b8a6",
-                          animation:`bounce 1s infinite ${i*0.15}s` }} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div ref={aiEndRef} />
-              </div>
-              <div style={{ padding:"10px 14px", borderTop:"1px solid #f1f5f9", display:"flex", gap:8, flexShrink:0 }}>
-                <input placeholder="Ask AI about your symptoms or appointment..."
-                  value={aiInput} onChange={e=>setAiInput(e.target.value)}
-                  onKeyDown={e=>e.key==="Enter"&&sendAiMsg()}
-                  style={{ flex:1, padding:"10px 14px", borderRadius:12,
-                    border:"1.5px solid #e2e8f0", fontSize:13, outline:"none", background:"#f8fafc" }} />
-                <button onClick={sendAiMsg} style={{
-                  background:"#0d4f4f", color:"white", border:"none",
-                  borderRadius:12, padding:"10px 16px", cursor:"pointer", fontWeight:700, fontSize:14,
-                }}>➤</button>
-              </div>
-            </div>
-          )}
-
-          {/* ── DOCTOR CHAT TAB ── */}
-          {activeTab==="doctor" && (
-            <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-              {/* Online badge */}
-              <div style={{ background:"#f0fdf4", padding:"8px 16px", borderBottom:"1px solid #dcfce7",
-                display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
-                <div style={{ width:8, height:8, borderRadius:"50%", background:"#16a34a",
-                  animation:"pulse 2s infinite" }} />
-                <span style={{ fontSize:12, color:"#15803d", fontWeight:600 }}>
-                  {appt.doctor} is online · Live consultation in progress
-                </span>
-                <span style={{ marginLeft:"auto", fontSize:11, color:"#94a3b8" }}>
-                  Viewing as: <strong>{chatRole==="patient"?"Patient 👤":"Doctor 👨‍⚕️"}</strong>
-                </span>
-              </div>
-
-              {/* Messages */}
-              <div style={{ flex:1, overflowY:"auto", padding:"14px 16px",
-                display:"flex", flexDirection:"column", gap:12 }}>
-                {drConvo.map((m,i) => {
-                  const isMe = (chatRole==="patient" && m.role==="patient") ||
-                               (chatRole==="doctor"  && m.role==="doctor");
-                  const isDoctor = m.role==="doctor";
-                  return (
-                    <div key={i} style={{ display:"flex", justifyContent:isMe?"flex-end":"flex-start",
-                      alignItems:"flex-end", gap:8 }}>
-                      {!isMe && (
-                        <img src={isDoctor ? drAvatar : PATIENT_AVATAR} alt=""
-                          style={{ width:32, height:32, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                      )}
-                      <div style={{ maxWidth:"75%" }}>
-                        {!isMe && (
-                          <div style={{ fontSize:11, color:"#64748b", marginBottom:3, fontWeight:600 }}>
-                            {isDoctor ? appt.doctor : "Patient (You)"}
-                          </div>
-                        )}
-                        <div style={{
-                          padding:"11px 15px", fontSize:13, lineHeight:1.6,
-                          borderRadius: isMe ? "14px 4px 14px 14px" : "4px 14px 14px 14px",
-                          background: isMe ? (chatRole==="doctor"?"#1a3fce":"#0d4f4f") : "white",
-                          color: isMe ? "white" : "#1e293b",
-                          boxShadow: isMe ? "none" : "0 1px 4px rgba(0,0,0,0.08)",
-                          border: isMe ? "none" : "1px solid #f1f5f9",
-                        }}>{m.text}</div>
-                        <div style={{ fontSize:10, color:"#94a3b8", marginTop:3,
-                          textAlign:isMe?"right":"left" }}>{m.time}</div>
-                      </div>
-                      {isMe && (
-                        <img src={chatRole==="doctor" ? drAvatar : PATIENT_AVATAR} alt="you"
-                          style={{ width:32, height:32, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                      )}
-                    </div>
-                  );
-                })}
-                {drLoading && (
-                  <div style={{ display:"flex", alignItems:"flex-end", gap:8 }}>
-                    <img src={drAvatar} alt="" style={{ width:32, height:32, borderRadius:"50%", objectFit:"cover" }} />
-                    <div style={{ display:"flex", gap:5, padding:"11px 15px",
-                      background:"white", borderRadius:"4px 14px 14px 14px",
-                      boxShadow:"0 1px 4px rgba(0,0,0,0.08)", border:"1px solid #f1f5f9" }}>
-                      {[0,1,2].map(i=>(
-                        <div key={i} style={{ width:7, height:7, borderRadius:"50%", background:"#1a3fce",
-                          animation:`bounce 1s infinite ${i*0.15}s` }} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div ref={drEndRef} />
-              </div>
-
-              {/* Input */}
-              <div style={{ padding:"10px 14px", borderTop:"1px solid #f1f5f9",
-                display:"flex", gap:8, alignItems:"center", flexShrink:0 }}>
-                <img src={chatRole==="doctor" ? drAvatar : PATIENT_AVATAR} alt=""
-                  style={{ width:32, height:32, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                <input
-                  placeholder={chatRole==="patient"
-                    ? "Message your doctor..."
-                    : `Replying as ${appt.doctor}...`}
-                  value={drInput} onChange={e=>setDrInput(e.target.value)}
-                  onKeyDown={e=>e.key==="Enter"&&sendDrMsg()}
-                  style={{ flex:1, padding:"10px 14px", borderRadius:12,
-                    border: chatRole==="doctor" ? "1.5px solid #1a3fce" : "1.5px solid #0d4f4f",
-                    fontSize:13, outline:"none", background:"#f8fafc" }}
-                />
-                <button onClick={sendDrMsg} style={{
-                  background: chatRole==="doctor" ? "#1a3fce" : "#0d4f4f",
-                  color:"white", border:"none", borderRadius:12,
-                  padding:"10px 16px", cursor:"pointer", fontWeight:700, fontSize:14,
-                }}>➤</button>
-              </div>
-            </div>
-          )}
-
-          {/* ── SUMMARY TAB ── */}
-          {activeTab==="summary" && (
-            <div style={{ flex:1, overflowY:"auto", padding:"18px 20px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-                <div style={{ fontWeight:800, fontSize:15, color:"#0f172a" }}>📋 Clinical Summary</div>
-                <button onClick={generateAnalysis} disabled={analysisLoading} style={{
-                  background: analysisLoading ? "#e2e8f0" : "linear-gradient(120deg,#0d4f4f,#14b8a6)",
-                  color: analysisLoading ? "#94a3b8" : "white",
-                  border:"none", borderRadius:10, padding:"9px 18px",
-                  fontWeight:700, fontSize:13, cursor: analysisLoading?"not-allowed":"pointer",
-                }}>
-                  {analysisLoading ? "Generating..." : "⚡ Generate Summary"}
-                </button>
-              </div>
-
-              {/* Patient info */}
-              <div style={{ background:"#f8fafc", borderRadius:14, padding:"14px 16px",
-                border:"1px solid #e2e8f0", marginBottom:14 }}>
-                <div style={{ fontWeight:700, fontSize:13, color:"#0f172a", marginBottom:8 }}>Appointment Info</div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px 16px" }}>
-                  {[["Doctor",appt.doctor],["Specialty",appt.specialty],
-                    ["Date",appt.date],["Time",appt.time],
-                    ["Type","💻 Online Consultation"],["Status",appt.status]
-                  ].map(([l,v])=>(
-                    <div key={l}>
-                      <span style={{ fontSize:11, color:"#94a3b8" }}>{l}: </span>
-                      <span style={{ fontSize:12, fontWeight:600, color:"#1e293b" }}>{v}</span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop:10, paddingTop:10, borderTop:"1px solid #e2e8f0" }}>
-                  <span style={{ fontSize:11, color:"#94a3b8" }}>Problem: </span>
-                  <span style={{ fontSize:12, color:"#1e293b" }}>{appt.problem}</span>
-                </div>
-              </div>
-
-              {/* AI Analysis result */}
-              <div style={{ background:"white", borderRadius:14, padding:"14px 16px",
-                border:"1px solid #e2e8f0" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                  <span style={{ fontSize:18 }}>🧠</span>
-                  <span style={{ fontWeight:700, fontSize:13, color:"#0f172a" }}>AI Clinical Analysis</span>
-                </div>
-                <div style={{ background:"#f8fafc", borderRadius:10, padding:"12px 14px",
-                  fontSize:13, color:"#475569", lineHeight:1.7, minHeight:80,
-                  border:"1px solid #f1f5f9" }}>
-                  {aiAnalysis || (
-                    <span style={{ color:"#94a3b8" }}>
-                      Click <strong>⚡ Generate Summary</strong> to create an AI clinical summary based on both conversations.
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes bounce { 0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)} }
-        @keyframes pulse  { 0%,100%{opacity:1}50%{opacity:0.4} }
-      `}</style>
-    </div>
-  );
+    );
 }
 
 /* ══════════════════════════════════════════════
-   MAIN PAGE
+   MAIN — BookAppointment
 ══════════════════════════════════════════════ */
 export default function BookAppointment() {
-  const [step, setStep]                 = useState(1);
-  const [selectedCat, setSelectedCat]   = useState(null);
-  const [form, setForm]                 = useState({ doctor:"", date:"", time:"", type:"visit", problem:"" });
-  const [appointments, setAppointments] = useState([
-    { id:1, doctor:"Dr. Emily Chen",  specialty:"Cardiologist",    date:"2024-03-20", time:"10:30 AM", type:"visit",   problem:"Chest pain on exertion",   status:"Confirmed", aiAnalysis:"Possible angina. ECG recommended." },
-    { id:2, doctor:"Dr. James Liu",   specialty:"Endocrinologist", date:"2024-03-25", time:"02:00 PM", type:"online",  problem:"Uncontrolled blood sugar",  status:"Confirmed", aiAnalysis:"" },
-  ]);
-  const [expandedId,  setExpandedId]    = useState(null);
-  const [chatAppt,    setChatAppt]      = useState(null); // opens modal
+    const navigate = useNavigate();
 
-  const cat = doctorCategories.find(c => c.specialty === selectedCat);
-  const resetWizard = () => { setStep(1); setSelectedCat(null); setForm({ doctor:"", date:"", time:"", type:"visit", problem:"" }); };
+    // User info
+    const user    = JSON.parse(localStorage.getItem("hospital_user")||"{}");
+    const [patient, setPatient] = useState(null);
 
-  const handleConfirm = () => {
-    if (!form.doctor||!form.date||!form.time||!form.problem.trim()) { alert("Fill all fields."); return; }
-    setAppointments(p => [{
-      id:Date.now(), doctor:form.doctor, specialty:selectedCat,
-      date:form.date, time:form.time, type:form.type,
-      problem:form.problem, status:"Pending", aiAnalysis:"",
-    }, ...p]);
-    resetWizard();
-  };
+    // Booking wizard
+    const [step,       setStep]       = useState(1);
+    const [doctors,    setDoctors]    = useState([]);
+    const [selectedDr, setSelectedDr] = useState(null);
+    const [specFilter, setSpecFilter] = useState("All");
+    const [drSearch,   setDrSearch]   = useState("");
+    const [form,       setForm]       = useState({ date:"", time_slot:"", visit_type:"in-person", problem:"" });
+    const [slots,      setSlots]      = useState([]);
+    const [slotsLoad,  setSlotsLoad]  = useState(false);
 
-  return (
-    <div style={{ minHeight:"100vh", background:"#eaf1f3", fontFamily:"'DM Sans','Segoe UI',sans-serif" }}>
+    // My appointments
+    const [appointments, setAppointments] = useState([]);
+    const [apptFilter,   setApptFilter]   = useState("All");
+    const [expandedId,   setExpandedId]   = useState(null);
+    const [chatAppt,     setChatAppt]     = useState(null);
 
-      {/* Consultation Chat Modal */}
-      {chatAppt && <ConsultationChat appt={chatAppt} onClose={() => setChatAppt(null)} />}
+    // UI
+    const [toast,   setToast]   = useState(null);
+    const [booking, setBooking] = useState(false);
 
-      {/* Top bar */}
-      <div style={{ background:"white", borderBottom:"1px solid #e2e8f0",
-        padding:"14px 20px", display:"flex", alignItems:"center", justifyContent:"space-between",
-        position:"sticky", top:0, zIndex:30 }}>
-        <div>
-          <div style={{ fontWeight:800, fontSize:18, color:"#0f172a" }}>📅 Book an Appointment</div>
-          <div style={{ fontSize:12, color:"#64748b" }}>Online or in-person — choose what works for you</div>
-        </div>
-        {step > 1 && (
-          <button onClick={resetWizard} style={{ background:"#f1f5f9", border:"none",
-            borderRadius:10, padding:"8px 16px", fontSize:13, fontWeight:600,
-            color:"#64748b", cursor:"pointer" }}>✕ Cancel</button>
-        )}
-      </div>
+    const showToast = (msg,ok=true) => { setToast({msg,ok}); setTimeout(()=>setToast(null),3000); };
 
-      <div style={{ padding:"20px 16px", maxWidth:900, margin:"0 auto" }} className="ba-body">
+    /* ── Load data ── */
+    const loadAll = useCallback(async () => {
+        const [p, d, a] = await Promise.all([
+            apiCall('/patient/profile'),
+            apiCall('/patient/doctors'),
+            apiCall('/patient/appointments'),
+        ]);
+        if (p.success) setPatient(p.patient);
+        if (d.success) setDoctors(d.doctors);
+        if (a.success) setAppointments(a.appointments);
+    }, []);
 
-        {/* ── WIZARD ── */}
-        {step <= 3 && (
-          <div style={{ background:"white", borderRadius:18,
-            boxShadow:"0 2px 16px rgba(0,0,0,0.07)", overflow:"hidden", marginBottom:28 }}>
+    useEffect(() => { loadAll(); }, [loadAll]);
 
-            {/* Progress */}
-            <div style={{ background:"#f8fafc", padding:"14px 20px", borderBottom:"1px solid #e2e8f0" }}>
-              <div style={{ display:"flex", alignItems:"center" }}>
-                {["Choose Specialty","Fill Details","Confirm"].map((label,i) => {
-                  const num=i+1; const done=step>num; const active=step===num;
-                  return (
-                    <div key={label} style={{ display:"flex", alignItems:"center", flex:i<2?1:"none" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <div style={{ width:28, height:28, borderRadius:"50%", display:"flex",
-                          alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:12,
-                          background: done?"#14b8a6":active?"#0d4f4f":"#e2e8f0",
-                          color: done||active?"white":"#94a3b8", flexShrink:0 }}>
-                          {done?"✓":num}
-                        </div>
-                        <span className="step-label" style={{ fontSize:12, fontWeight:600,
-                          color:active?"#0d4f4f":done?"#14b8a6":"#94a3b8" }}>{label}</span>
-                      </div>
-                      {i<2 && <div style={{ flex:1, height:2, background:done?"#14b8a6":"#e2e8f0", margin:"0 12px" }} />}
+    /* ── Load slots when date changes ── */
+    useEffect(() => {
+        if (!selectedDr || !form.date) { setSlots([]); return; }
+        (async () => {
+            setSlotsLoad(true);
+            const d = await apiCall(`/doctor/slots?doctor_id=${selectedDr.id}&date=${form.date}`);
+            setSlotsLoad(false);
+            setSlots(d.success ? d.slots : []);
+        })();
+    }, [selectedDr, form.date]);
+
+    /* ── Specialties list ── */
+    const specialties = ["All", ...new Set(doctors.map(d=>d.specialty).filter(Boolean).sort())];
+
+    /* ── Filtered doctors ── */
+    const filtDrs = doctors.filter(d => {
+        const ms = specFilter==="All" || d.specialty===specFilter;
+        const ms2 = !drSearch || d.name?.toLowerCase().includes(drSearch.toLowerCase()) || d.specialty?.toLowerCase().includes(drSearch.toLowerCase());
+        return ms && ms2;
+    });
+
+    /* ── Book appointment ── */
+    const handleBook = async () => {
+        if (!form.date||!form.time_slot||!form.problem.trim()) { showToast("Fill all fields.",false); return; }
+        setBooking(true);
+        const data = await apiCall('/patient/appointments','POST',{ doctor_id:selectedDr.id, ...form });
+        setBooking(false);
+        if (data.success) { showToast("Appointment booked! ✅"); resetWizard(); loadAll(); }
+        else showToast(data.message,false);
+    };
+
+    /* ── Cancel ── */
+    const handleCancel = async (id) => {
+        if (!window.confirm("Cancel this appointment?")) return;
+        const data = await apiCall(`/patient/appointments/${id}/cancel`,'PUT',{reason:"Cancelled by patient."});
+        if (data.success) { showToast("Appointment cancelled."); loadAll(); }
+        else showToast(data.message,false);
+    };
+
+    /* ── Save AI analysis ── */
+    const saveAnalysis = async (id, analysis, risk) => {
+        await apiCall(`/patient/appointments/${id}/analysis`,'PUT',{ai_analysis:analysis,ai_risk:risk});
+        loadAll();
+    };
+
+    const resetWizard = () => {
+        setStep(1); setSelectedDr(null); setSpecFilter("All"); setDrSearch("");
+        setForm({date:"",time_slot:"",visit_type:"in-person",problem:""}); setSlots([]);
+    };
+
+    const filtAppts = apptFilter==="All" ? appointments : appointments.filter(a=>a.status===apptFilter);
+
+    const ptName  = patient?.name || user?.name || "Patient";
+    const ptAvImg = patient?.avatar || uiAvatar(ptName,"14b8a6");
+
+    return (
+        <div style={{minHeight:"100vh",background:"#eaf1f3",fontFamily:"'DM Sans','Segoe UI',sans-serif"}}>
+            {/* Toast */}
+            {toast&&<div style={{position:"fixed",top:20,right:20,zIndex:9999,background:toast.ok?"#10b981":"#ef4444",color:"white",padding:"12px 20px",borderRadius:12,fontWeight:700,fontSize:14,boxShadow:"0 8px 24px rgba(0,0,0,0.2)"}}>{toast.ok?"✅":"❌"} {toast.msg}</div>}
+
+            {/* Consultation Modal */}
+            {chatAppt && <ConsultationModal appt={chatAppt} onClose={()=>setChatAppt(null)} onSaveAnalysis={saveAnalysis}/>}
+
+            {/* ══ TOPBAR ══ */}
+            <div style={{background:"white",borderBottom:"1px solid #e2e8f0",padding:"0 20px",height:60,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:30,boxShadow:"0 1px 8px rgba(0,0,0,0.05)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    {/* Back button */}
+                    <button onClick={()=>navigate("/patient")} style={{display:"flex",alignItems:"center",gap:6,background:"#f1f5f9",border:"none",borderRadius:10,padding:"7px 14px",cursor:"pointer",fontWeight:700,fontSize:13,color:"#475569",transition:"all 0.2s"}}>
+                        ← Back
+                    </button>
+                    <div>
+                        <div style={{fontWeight:800,fontSize:16,color:"#0f172a"}}>📅 Book Appointment</div>
+                        <div style={{fontSize:11,color:"#94a3b8"}}>Real-time slots from registered doctors</div>
                     </div>
-                  );
-                })}
-              </div>
+                </div>
+                {/* Patient name + avatar */}
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:13,fontWeight:700,color:"#0f172a"}}>{ptName}</div>
+                        <div style={{fontSize:11,color:"#94a3b8"}}>{patient?.blood_type||"Patient"}</div>
+                    </div>
+                    <img src={ptAvImg} alt={ptName} style={{width:36,height:36,borderRadius:"50%",objectFit:"cover",border:"2px solid #14b8a6",flexShrink:0}}/>
+                </div>
             </div>
 
-            <div style={{ padding:20 }}>
-              {/* STEP 1 */}
-              {step===1 && (
-                <div>
-                  <div style={{ fontWeight:700, fontSize:15, color:"#0f172a", marginBottom:16 }}>What type of doctor do you need?</div>
-                  <div className="cat-grid">
-                    {doctorCategories.map(c => (
-                      <div key={c.specialty}
-                        onClick={()=>{ setSelectedCat(c.specialty); setForm(f=>({...f,doctor:c.doctors[0]})); setStep(2); }}
-                        style={{ border:"2px solid #f1f5f9", borderRadius:14, padding:"16px 14px",
-                          cursor:"pointer", background:"#fafafa", transition:"all 0.15s", textAlign:"center",
-                          ":hover":{ border:"2px solid #14b8a6" } }}>
-                        <div style={{ fontSize:32, marginBottom:8 }}>{c.icon}</div>
-                        <div style={{ fontWeight:700, fontSize:13, color:"#0f172a", marginBottom:4 }}>{c.specialty}</div>
-                        <div style={{ fontSize:11, color:"#94a3b8", lineHeight:1.4 }}>{c.desc}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div style={{padding:"20px 16px",maxWidth:940,margin:"0 auto"}} className="ba-wrap">
 
-              {/* STEP 2 */}
-              {step===2 && cat && (
-                <div>
-                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
-                    <div style={{ fontSize:28 }}>{cat.icon}</div>
-                    <div>
-                      <div style={{ fontWeight:800, fontSize:15, color:"#0f172a" }}>{cat.specialty}</div>
-                      <div style={{ fontSize:12, color:"#64748b" }}>{cat.desc}</div>
+                {/* ══ WIZARD ══ */}
+                {step<=3&&(
+                    <div style={{background:"white",borderRadius:18,boxShadow:"0 2px 16px rgba(0,0,0,0.07)",overflow:"hidden",marginBottom:24}}>
+                        {/* Progress bar */}
+                        <div style={{background:"#f8fafc",padding:"14px 20px",borderBottom:"1px solid #e2e8f0"}}>
+                            <div style={{display:"flex",alignItems:"center"}}>
+                                {["Choose Doctor","Fill Details","Confirm"].map((label,i)=>{
+                                    const num=i+1,done=step>num,active=step===num;
+                                    return (
+                                        <div key={label} style={{display:"flex",alignItems:"center",flex:i<2?1:"none"}}>
+                                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                                <div style={{width:28,height:28,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,background:done?"#14b8a6":active?"#0d4f4f":"#e2e8f0",color:done||active?"white":"#94a3b8",flexShrink:0}}>{done?"✓":num}</div>
+                                                <span className="step-label" style={{fontSize:12,fontWeight:600,color:active?"#0d4f4f":done?"#14b8a6":"#94a3b8"}}>{label}</span>
+                                            </div>
+                                            {i<2&&<div style={{flex:1,height:2,background:done?"#14b8a6":"#e2e8f0",margin:"0 12px"}}/>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div style={{padding:20}}>
+
+                            {/* ── STEP 1: Choose Doctor ── */}
+                            {step===1&&(
+                                <div>
+                                    <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:14}}>Choose your doctor</div>
+                                    {/* Search + Filter */}
+                                    <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}}>
+                                        <div style={{flex:1,minWidth:180,position:"relative"}}>
+                                            <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#94a3b8"}}>🔍</span>
+                                            <input placeholder="Search doctor or specialty..." value={drSearch} onChange={e=>setDrSearch(e.target.value)} style={{width:"100%",padding:"9px 12px 9px 34px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc",boxSizing:"border-box"}}/>
+                                        </div>
+                                        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                                            {specialties.map(s=>(
+                                                <button key={s} onClick={()=>setSpecFilter(s)} style={{padding:"7px 14px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,background:specFilter===s?"#0d4f4f":"#f1f5f9",color:specFilter===s?"white":"#64748b",whiteSpace:"nowrap"}}>
+                                                    {s}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {filtDrs.length===0
+                                        ? <div style={{textAlign:"center",padding:"40px",color:"#94a3b8",background:"#f8fafc",borderRadius:12}}>
+                                            <div style={{fontSize:32,marginBottom:10}}>👨‍⚕️</div>
+                                            {doctors.length===0 ? "No doctors registered yet. Ask admin to add doctors." : "No doctors match your search."}
+                                          </div>
+                                        : <div className="dr-pick-grid">
+                                            {filtDrs.map(d=>(
+                                                <div key={d.id} onClick={()=>{setSelectedDr(d);setStep(2);}} style={{display:"flex",alignItems:"center",gap:12,padding:"14px",border:"2px solid #f1f5f9",borderRadius:14,cursor:"pointer",background:"#fafafa",transition:"all 0.15s"}}>
+                                                    <img src={d.avatar?`http://localhost:5000${d.avatar}`:uiAvatar(d.name,"0d4f4f")} alt={d.name} style={{width:52,height:52,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0"}}/>
+                                                    <div style={{flex:1,minWidth:0}}>
+                                                        <div style={{fontWeight:700,fontSize:14,color:"#0f172a",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.name}</div>
+                                                        <div style={{fontSize:12,color:"#64748b"}}>{d.specialty}</div>
+                                                        <div style={{fontSize:11,color:"#0d4f4f",marginTop:3,fontWeight:600}}>
+                                                            {d.experience&&`${d.experience}`}{d.fee&&` · $${d.fee}/visit`}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{color:"#14b8a6",fontSize:20}}>→</div>
+                                                </div>
+                                            ))}
+                                          </div>
+                                    }
+                                </div>
+                            )}
+
+                            {/* ── STEP 2: Fill Details ── */}
+                            {step===2&&selectedDr&&(
+                                <div>
+                                    {/* Selected doctor card */}
+                                    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,background:"#f0fdfb",borderRadius:14,padding:"12px 16px",border:"1px solid #ccfbf1"}}>
+                                        <img src={selectedDr.avatar?`http://localhost:5000${selectedDr.avatar}`:uiAvatar(selectedDr.name,"0d4f4f")} alt="" style={{width:48,height:48,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
+                                        <div style={{flex:1}}>
+                                            <div style={{fontWeight:800,fontSize:15,color:"#0d4f4f"}}>{selectedDr.name}</div>
+                                            <div style={{fontSize:12,color:"#64748b"}}>{selectedDr.specialty}{selectedDr.experience&&` · ${selectedDr.experience}`}{selectedDr.fee&&` · $${selectedDr.fee}/visit`}</div>
+                                        </div>
+                                        <button onClick={()=>setStep(1)} style={{background:"none",border:"1px solid #ccfbf1",borderRadius:8,padding:"5px 12px",fontSize:12,color:"#0d4f4f",cursor:"pointer",fontWeight:600}}>Change</button>
+                                    </div>
+                                    <div className="form-grid">
+                                        {/* Date */}
+                                        <div>
+                                            <label style={lbSt}>Appointment Date</label>
+                                            <input type="date" value={form.date} min={minDate()} onChange={e=>setForm(f=>({...f,date:e.target.value,time_slot:""}))} style={inSt}/>
+                                        </div>
+                                        {/* Type */}
+                                        <div>
+                                            <label style={lbSt}>Appointment Type</label>
+                                            <div style={{display:"flex",gap:10}}>
+                                                {[["in-person","🏥","In-Person"],["online","💻","Online"]].map(([val,icon,label])=>(
+                                                    <div key={val} onClick={()=>setForm(f=>({...f,visit_type:val}))} style={{flex:1,padding:"10px 12px",borderRadius:12,cursor:"pointer",border:form.visit_type===val?"2px solid #14b8a6":"2px solid #e2e8f0",background:form.visit_type===val?"#f0fdfb":"white",textAlign:"center",transition:"all 0.15s"}}>
+                                                        <div style={{fontSize:20}}>{icon}</div>
+                                                        <div style={{fontWeight:700,fontSize:12,color:"#0f172a",marginTop:4}}>{label}</div>
+                                                        {form.visit_type===val&&<div style={{fontSize:10,color:"#14b8a6",fontWeight:700}}>✔ Selected</div>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {/* Slots */}
+                                        <div className="full-w">
+                                            <label style={lbSt}>Available Slots {form.date&&<span style={{fontWeight:400,color:"#94a3b8",fontSize:11}}>— {fmtDate(form.date)}</span>}</label>
+                                            {!form.date
+                                                ? <div style={{padding:14,borderRadius:10,background:"#f8fafc",border:"1.5px solid #e2e8f0",fontSize:13,color:"#94a3b8",textAlign:"center"}}>Select a date to see available slots</div>
+                                                : slotsLoad
+                                                    ? <div style={{padding:14,textAlign:"center",color:"#14b8a6",fontSize:13}}>Loading slots...</div>
+                                                    : slots.length===0
+                                                        ? <div style={{padding:14,borderRadius:10,background:"#fef9c3",border:"1px solid #fde68a",fontSize:13,color:"#b45309",textAlign:"center"}}>⚠️ No slots on this day. Doctor may be off or fully booked. Try another date.</div>
+                                                        : <div className="slot-grid">
+                                                            {slots.map(s=>(
+                                                                <div key={s.time} onClick={()=>s.available&&setForm(f=>({...f,time_slot:s.time}))} style={{padding:"9px 4px",borderRadius:9,textAlign:"center",cursor:s.available?"pointer":"not-allowed",fontSize:12,fontWeight:600,border:form.time_slot===s.time?"2px solid #14b8a6":s.available?"2px solid #e2e8f0":"2px solid #f1f5f9",background:form.time_slot===s.time?"#f0fdfb":s.available?"#f8fafc":"#f1f5f9",color:form.time_slot===s.time?"#0d9488":s.available?"#475569":"#cbd5e1",position:"relative"}}>
+                                                                    {fmtTime(s.time)}
+                                                                    {!s.available&&<div style={{fontSize:9,color:"#ef4444",fontWeight:700}}>Booked</div>}
+                                                                </div>
+                                                            ))}
+                                                          </div>
+                                            }
+                                        </div>
+                                        {/* Problem */}
+                                        <div className="full-w">
+                                            <label style={lbSt}>Describe Your Problem <span style={{color:"#ef4444"}}>*</span></label>
+                                            <textarea placeholder="Describe symptoms, how long, relevant history..." value={form.problem} onChange={e=>setForm(f=>({...f,problem:e.target.value}))} rows={4} style={{...inSt,resize:"vertical",lineHeight:1.6}}/>
+                                        </div>
+                                    </div>
+                                    <div style={{display:"flex",gap:10,marginTop:8}}>
+                                        <button onClick={()=>setStep(1)} style={outBtn}>← Back</button>
+                                        <button onClick={()=>{if(!form.date||!form.time_slot||!form.problem.trim()){showToast("Fill all fields.",false);return;}setStep(3);}} style={{...primBtn,flex:1}}>Review →</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── STEP 3: Confirm ── */}
+                            {step===3&&selectedDr&&(
+                                <div>
+                                    <div style={{fontWeight:800,fontSize:15,color:"#0f172a",marginBottom:14}}>Review & Confirm</div>
+                                    <div style={{background:"#f8fafc",borderRadius:14,padding:"16px 18px",marginBottom:14,border:"1px solid #e2e8f0"}}>
+                                        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14,paddingBottom:14,borderBottom:"1px solid #e2e8f0"}}>
+                                            <img src={selectedDr.avatar?`http://localhost:5000${selectedDr.avatar}`:uiAvatar(selectedDr.name,"0d4f4f")} alt="" style={{width:46,height:46,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
+                                            <div><div style={{fontWeight:800,fontSize:15,color:"#0f172a"}}>{selectedDr.name}</div><div style={{fontSize:12,color:"#64748b"}}>{selectedDr.specialty}</div></div>
+                                        </div>
+                                        <div className="confirm-grid">
+                                            {[["Date",fmtDate(form.date)],["Time",fmtTime(form.time_slot)],["Type",form.visit_type==="online"?"💻 Online":"🏥 In-Person"],["Fee",selectedDr.fee?`$${selectedDr.fee}`:"N/A"]].map(([l,v])=>(
+                                                <div key={l}><div style={{fontSize:11,color:"#94a3b8",marginBottom:3}}>{l}</div><div style={{fontSize:13,fontWeight:700,color:"#0f172a"}}>{v}</div></div>
+                                            ))}
+                                        </div>
+                                        <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #e2e8f0"}}>
+                                            <div style={{fontSize:11,color:"#94a3b8",marginBottom:4}}>Problem</div>
+                                            <div style={{fontSize:13,color:"#475569",lineHeight:1.6}}>{form.problem}</div>
+                                        </div>
+                                    </div>
+                                    {form.visit_type==="online"&&<div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:12,padding:"12px 16px",marginBottom:14,fontSize:12,color:"#1d4ed8",fontWeight:600}}>💻 After booking, open the consultation chat to talk with AI and your doctor.</div>}
+                                    {form.visit_type==="in-person"&&<div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:12,padding:"12px 16px",marginBottom:14,fontSize:12,color:"#15803d",fontWeight:600}}>🏥 Please arrive 10 minutes early. Bring your ID and previous medical reports.</div>}
+                                    <div style={{display:"flex",gap:10}}>
+                                        <button onClick={()=>setStep(2)} style={outBtn}>← Edit</button>
+                                        <button onClick={handleBook} disabled={booking} style={{...primBtn,flex:1}}>{booking?"Booking...":"✅ Confirm Booking"}</button>
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
                     </div>
-                  </div>
-                  <div className="form-grid">
-                    <div>
-                      <label style={labelStyle}>Select Doctor</label>
-                      <select value={form.doctor} onChange={e=>setForm(f=>({...f,doctor:e.target.value}))} style={selectSt}>
-                        {cat.doctors.map(d=><option key={d}>{d}</option>)}
-                      </select>
+                )}
+
+                {/* ══ MY APPOINTMENTS ══ */}
+                <div style={{background:"white",borderRadius:18,boxShadow:"0 2px 16px rgba(0,0,0,0.07)",overflow:"hidden"}}>
+                    <div style={{padding:"14px 20px",borderBottom:"1px solid #f1f5f9",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+                        <div style={{fontWeight:800,fontSize:15,color:"#0f172a"}}>My Appointments</div>
+                        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                            {["All","Pending","Confirmed","Completed","Cancelled"].map(f=>(
+                                <button key={f} onClick={()=>setApptFilter(f)} style={{padding:"5px 12px",borderRadius:20,border:"none",cursor:"pointer",fontSize:11,fontWeight:600,background:apptFilter===f?"#0d4f4f":"#f1f5f9",color:apptFilter===f?"white":"#64748b"}}>
+                                    {f} <span style={{opacity:0.7}}>({(f==="All"?appointments:appointments.filter(a=>a.status===f)).length})</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    <div>
-                      <label style={labelStyle}>Appointment Date</label>
-                      <input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} style={inputSt} />
-                    </div>
-                    <div className="full-width">
-                      <label style={labelStyle}>Appointment Type</label>
-                      <div style={{ display:"flex", gap:10 }}>
-                        {[["visit","🏥","Hospital Visit","Come in person"],["online","💻","Online Consultation","Video + chat with doctor"]].map(([val,icon,title,sub])=>(
-                          <div key={val} onClick={()=>setForm(f=>({...f,type:val}))} style={{
-                            flex:1, padding:"12px 14px", borderRadius:12, cursor:"pointer",
-                            border: form.type===val?"2px solid #14b8a6":"2px solid #e2e8f0",
-                            background: form.type===val?"#f0fdfb":"white", transition:"all 0.15s",
-                          }}>
-                            <div style={{ fontSize:22, marginBottom:4 }}>{icon}</div>
-                            <div style={{ fontWeight:700, fontSize:13, color:"#0f172a" }}>{title}</div>
-                            <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>{sub}</div>
-                            {form.type===val && <div style={{ fontSize:11, color:"#14b8a6", fontWeight:700, marginTop:4 }}>✔ Selected</div>}
+
+                    {filtAppts.length===0
+                        ? <div style={{padding:"40px",textAlign:"center",color:"#94a3b8"}}>
+                            <div style={{fontSize:32,marginBottom:10}}>📅</div>
+                            No appointments found. Book your first one above!
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="full-width">
-                      <label style={labelStyle}>Available Time Slots</label>
-                      <div className="slot-grid">
-                        {timeSlots.map(slot=>(
-                          <div key={slot} onClick={()=>setForm(f=>({...f,time:slot}))} style={{
-                            padding:"9px 4px", borderRadius:9, textAlign:"center", cursor:"pointer",
-                            fontSize:12, fontWeight:600,
-                            border: form.time===slot?"2px solid #14b8a6":"2px solid #e2e8f0",
-                            background: form.time===slot?"#f0fdfb":"#f8fafc",
-                            color: form.time===slot?"#0d9488":"#475569",
-                          }}>{slot}</div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="full-width">
-                      <label style={labelStyle}>Describe Your Problem <span style={{ color:"#ef4444" }}>*</span></label>
-                      <textarea placeholder="Describe your symptoms, duration, and any relevant history..."
-                        value={form.problem} onChange={e=>setForm(f=>({...f,problem:e.target.value}))}
-                        rows={4} style={{ ...inputSt, resize:"vertical", lineHeight:1.6 }} />
-                    </div>
-                  </div>
-                  <div style={{ display:"flex", gap:10, marginTop:8 }}>
-                    <button onClick={()=>setStep(1)} style={outlineBtn}>← Back</button>
-                    <button onClick={()=>{ if(!form.date||!form.time||!form.problem.trim()){alert("Fill all fields.");return;} setStep(3); }}
-                      style={{ ...primaryBtn, flex:1 }}>Review →</button>
-                  </div>
+                        : filtAppts.map((a,idx)=>(
+                            <div key={a.id}>
+                                <div onClick={()=>setExpandedId(expandedId===a.id?null:a.id)} style={{padding:"14px 20px",cursor:"pointer",background:expandedId===a.id?"#f8fafc":"white",borderBottom:expandedId===a.id?"none":"1px solid #f1f5f9",transition:"background 0.15s"}}>
+                                    <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                                        <img src={a.doctor_avatar?`http://localhost:5000${a.doctor_avatar}`:uiAvatar(a.doctor_name,"6366f1")} alt="" style={{width:44,height:44,borderRadius:12,objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0"}}/>
+                                        <div style={{flex:1,minWidth:140}}>
+                                            <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{a.doctor_name}</div>
+                                            <div style={{fontSize:12,color:"#94a3b8"}}>{a.specialty} · {fmtDate(a.date)} · {fmtTime(a.time_slot)}</div>
+                                            <div style={{fontSize:12,color:"#64748b",marginTop:2}}><span style={{fontWeight:600}}>Problem:</span> {a.problem?.substring(0,60)}{a.problem?.length>60?"...":""}</div>
+                                        </div>
+                                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",flexShrink:0}}>
+                                            <Badge s={a.status}/>
+                                            {a.ai_risk&&<Badge s={a.ai_risk} map={RISK_CLR}/>}
+                                            <span style={{fontSize:12,fontWeight:600,color:a.visit_type==="online"?"#0284c7":"#0d4f4f"}}>{a.visit_type==="online"?"💻":"🏥"}</span>
+                                            {a.visit_type==="online"&&a.status!=="Cancelled"&&(
+                                                <button onClick={e=>{e.stopPropagation();setChatAppt(a);}} style={{background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",color:"white",border:"none",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>💬 Chat</button>
+                                            )}
+                                            <span style={{fontSize:14,color:"#94a3b8"}}>{expandedId===a.id?"▲":"▼"}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {expandedId===a.id&&(
+                                    <div style={{background:"#f8fafc",padding:"14px 20px",borderBottom:"1px solid #e2e8f0"}}>
+                                        <div className="expand-grid">
+                                            <div style={{background:"white",borderRadius:12,padding:14,border:"1px solid #e2e8f0"}}>
+                                                <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:8}}>{a.visit_type==="online"?"💻 Online Consultation":"🏥 Visit Info"}</div>
+                                                {a.visit_type==="online"
+                                                    ? <div style={{fontSize:12,color:"#64748b",lineHeight:1.8}}>📱 Chat with AI assistant<br/>💬 Talk with {a.doctor_name}<br/>📋 Generate clinical summary</div>
+                                                    : <div style={{fontSize:12,color:"#64748b",lineHeight:1.8}}>📍 Arrive 10 minutes early<br/>🪪 Bring your ID card<br/>📋 Carry previous reports<br/>🚫 No food 2hrs before if blood test</div>
+                                                }
+                                                <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
+                                                    {a.visit_type==="online"&&a.status!=="Cancelled"&&<button onClick={()=>setChatAppt(a)} style={{...primBtn,fontSize:12,padding:"8px 14px"}}>💬 Open Chat</button>}
+                                                    {(a.status==="Pending"||a.status==="Confirmed")&&<button onClick={()=>handleCancel(a.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:10,padding:"8px 14px",fontWeight:700,fontSize:12,cursor:"pointer"}}>✕ Cancel</button>}
+                                                </div>
+                                            </div>
+                                            <div style={{background:"white",borderRadius:12,padding:14,border:"1px solid #e2e8f0"}}>
+                                                <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:8}}>🧠 AI Analysis</div>
+                                                {a.ai_analysis
+                                                    ? <div style={{fontSize:12,color:"#475569",lineHeight:1.7,whiteSpace:"pre-wrap"}}>{a.ai_analysis}</div>
+                                                    : <div style={{fontSize:12,color:"#94a3b8"}}>No AI analysis yet. {a.visit_type==="online"?"Open chat to generate.":""}</div>
+                                                }
+                                                {a.cancel_reason&&<div style={{marginTop:8,background:"#fee2e2",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#dc2626"}}><strong>Reason:</strong> {a.cancel_reason}</div>}
+                                                {a.notes&&<div style={{marginTop:8,background:"#fffbeb",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#92400e"}}><strong>Doctor's notes:</strong> {a.notes}</div>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    }
                 </div>
-              )}
 
-              {/* STEP 3 */}
-              {step===3 && cat && (
-                <div>
-                  <div style={{ fontWeight:800, fontSize:15, color:"#0f172a", marginBottom:14 }}>Review & Confirm</div>
-                  <div style={{ background:"#f8fafc", borderRadius:14, padding:"16px 18px",
-                    marginBottom:14, border:"1px solid #e2e8f0" }}>
-                    <div className="confirm-grid">
-                      {[["Specialty",`${cat.icon} ${selectedCat}`],["Doctor",form.doctor],
-                        ["Date",form.date],["Time",form.time],
-                        ["Type",form.type==="online"?"💻 Online":"🏥 Visit"]].map(([l,v])=>(
-                        <div key={l}>
-                          <div style={{ fontSize:11, color:"#94a3b8", marginBottom:3 }}>{l}</div>
-                          <div style={{ fontSize:13, fontWeight:700, color:"#0f172a" }}>{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ marginTop:12, paddingTop:12, borderTop:"1px solid #e2e8f0" }}>
-                      <div style={{ fontSize:11, color:"#94a3b8", marginBottom:4 }}>Problem</div>
-                      <div style={{ fontSize:13, color:"#475569", lineHeight:1.6 }}>{form.problem}</div>
-                    </div>
-                  </div>
-                  {form.type==="online" && (
-                    <div style={{ background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:12,
-                      padding:"12px 16px", marginBottom:14, fontSize:12, color:"#1d4ed8", fontWeight:600 }}>
-                      💻 After booking, you can open the consultation chat to talk with both the AI assistant and your doctor directly.
-                    </div>
-                  )}
-                  {form.type==="visit" && (
-                    <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:12,
-                      padding:"12px 16px", marginBottom:14, fontSize:12, color:"#15803d", fontWeight:600 }}>
-                      🏥 Please arrive 10 minutes early. Bring your ID and any previous medical reports.
-                    </div>
-                  )}
-                  <div style={{ display:"flex", gap:10 }}>
-                    <button onClick={()=>setStep(2)} style={outlineBtn}>← Edit</button>
-                    <button onClick={handleConfirm} style={{ ...primaryBtn, flex:1 }}>✅ Confirm Booking</button>
-                  </div>
-                </div>
-              )}
             </div>
-          </div>
-        )}
 
-        {/* ── APPOINTMENTS TABLE ── */}
-        <div style={{ background:"white", borderRadius:18,
-          boxShadow:"0 2px 16px rgba(0,0,0,0.07)", overflow:"hidden" }}>
-          <div style={{ padding:"16px 20px", borderBottom:"1px solid #f1f5f9",
-            display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <div style={{ fontWeight:800, fontSize:15, color:"#0f172a" }}>My Appointments</div>
-            <span style={{ fontSize:11, background:"#f1f5f9", color:"#64748b",
-              padding:"4px 10px", borderRadius:20, fontWeight:600 }}>{appointments.length} total</span>
-          </div>
-
-          {appointments.map((appt,idx) => (
-            <div key={appt.id}>
-              <div onClick={()=>setExpandedId(expandedId===appt.id?null:appt.id)}
-                style={{ padding:"14px 20px", cursor:"pointer",
-                  background:expandedId===appt.id?"#f8fafc":"white",
-                  borderBottom:expandedId===appt.id?"none":"1px solid #f1f5f9",
-                  transition:"background 0.15s" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
-                  <div style={{ flex:1, minWidth:160 }}>
-                    <div style={{ fontWeight:700, fontSize:14, color:"#0f172a" }}>{appt.doctor}</div>
-                    <div style={{ fontSize:12, color:"#94a3b8" }}>{appt.specialty} · {appt.date} · {appt.time}</div>
-                  </div>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                    <span style={{ fontSize:12, fontWeight:600, color:appt.type==="online"?"#0284c7":"#0d4f4f" }}>
-                      {appt.type==="online"?"💻 Online":"🏥 Visit"}
-                    </span>
-                    <span style={{ fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:20,
-                      background:statusColor[appt.status]?.bg, color:statusColor[appt.status]?.color }}>
-                      {appt.status}
-                    </span>
-                    {appt.type==="online" && (
-                      <button
-                        onClick={e=>{ e.stopPropagation(); setChatAppt(appt); }}
-                        style={{ background:"linear-gradient(120deg,#0d4f4f,#14b8a6)", color:"white",
-                          border:"none", borderRadius:8, padding:"6px 14px",
-                          fontSize:12, fontWeight:700, cursor:"pointer" }}>
-                        💬 Open Chat
-                      </button>
-                    )}
-                    <span style={{ fontSize:16, color:"#94a3b8" }}>{expandedId===appt.id?"▲":"▼"}</span>
-                  </div>
-                </div>
-                <div style={{ marginTop:5, fontSize:12, color:"#64748b" }}>
-                  <span style={{ fontWeight:600 }}>Problem: </span>{appt.problem}
-                </div>
-              </div>
-
-              {expandedId===appt.id && (
-                <div style={{ background:"#f8fafc", padding:"16px 20px",
-                  borderBottom:"1px solid #e2e8f0" }}>
-                  {appt.type==="online" ? (
-                    <div style={{ textAlign:"center", padding:"20px 0" }}>
-                      <div style={{ fontSize:36, marginBottom:10 }}>💻</div>
-                      <div style={{ fontWeight:700, fontSize:15, color:"#0f172a", marginBottom:6 }}>
-                        Online Consultation
-                      </div>
-                      <div style={{ fontSize:13, color:"#64748b", marginBottom:16 }}>
-                        Chat with AI assistant and your doctor in the consultation panel.
-                      </div>
-                      <button onClick={()=>setChatAppt(appt)}
-                        style={{ ...primaryBtn, fontSize:14 }}>
-                        💬 Open Consultation Chat
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }} className="visit-info">
-                      <div style={{ background:"white", borderRadius:12, padding:16, border:"1px solid #e2e8f0" }}>
-                        <div style={{ fontWeight:700, fontSize:13, color:"#0f172a", marginBottom:8 }}>🏥 Visit Info</div>
-                        <div style={{ fontSize:12, color:"#64748b", lineHeight:1.7 }}>
-                          📍 Arrive 10 minutes early<br/>
-                          🪪 Bring your ID card<br/>
-                          📋 Carry previous reports<br/>
-                          🚫 No food 2 hours before (if blood test)
-                        </div>
-                      </div>
-                      <div style={{ background:"white", borderRadius:12, padding:16, border:"1px solid #e2e8f0" }}>
-                        <div style={{ fontWeight:700, fontSize:13, color:"#0f172a", marginBottom:8 }}>🧠 AI Notes</div>
-                        <div style={{ fontSize:12, color:"#475569", lineHeight:1.7 }}>
-                          {appt.aiAnalysis || <span style={{ color:"#94a3b8" }}>No AI analysis yet.</span>}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+            <style>{`
+                @media(min-width:769px){
+                    .ba-wrap{padding:24px 28px !important;}
+                    .dr-pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+                    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+                    .slot-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+                    .confirm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+                    .expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+                    .step-label{display:inline !important;}
+                    .full-w{grid-column:1/-1;}
+                }
+                @media(max-width:768px){
+                    .dr-pick-grid{display:flex;flex-direction:column;gap:10px;}
+                    .form-grid{display:flex;flex-direction:column;gap:14px;}
+                    .slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+                    .confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+                    .expand-grid{display:flex;flex-direction:column;gap:12px;}
+                    .step-label{display:none !important;}
+                    .full-w{width:100%;}
+                }
+                select,input,textarea{font-family:inherit;}
+                div::-webkit-scrollbar{width:4px;height:4px;}
+                div::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px;}
+                @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+                @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+            `}</style>
         </div>
-      </div>
-
-      <style>{`
-        @keyframes bounce { 0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)} }
-        @keyframes pulse  { 0%,100%{opacity:1}50%{opacity:0.5} }
-        @media(min-width:769px){
-          .ba-body       { padding:24px 28px !important; }
-          .cat-grid      { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
-          .form-grid     { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-          .slot-grid     { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
-          .confirm-grid  { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
-          .visit-info    { grid-template-columns:1fr 1fr !important; }
-          .step-label    { display:inline !important; }
-          .full-width    { grid-column:1/-1; }
-        }
-        @media(max-width:768px){
-          .cat-grid      { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
-          .form-grid     { display:flex; flex-direction:column; gap:14px; }
-          .slot-grid     { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
-          .confirm-grid  { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-          .visit-info    { grid-template-columns:1fr !important; }
-          .step-label    { display:none !important; }
-          .full-width    { width:100%; }
-        }
-        select,input,textarea{ font-family:inherit; }
-        div::-webkit-scrollbar      { width:4px; height:4px; }
-        div::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:4px; }
-      `}</style>
-    </div>
-  );
+    );
 }
 
-const labelStyle = { fontSize:12, fontWeight:700, color:"#475569", marginBottom:6, display:"block" };
-const inputSt    = { padding:"10px 12px", borderRadius:10, border:"1.5px solid #e2e8f0", fontSize:13,
-  outline:"none", background:"#f8fafc", color:"#1e293b", width:"100%", boxSizing:"border-box" };
-const selectSt   = { ...inputSt, cursor:"pointer" };
-const primaryBtn = { background:"linear-gradient(120deg,#0d4f4f,#14b8a6)", color:"white", border:"none",
-  borderRadius:12, padding:"12px 24px", fontWeight:700, fontSize:14, cursor:"pointer" };
-const outlineBtn = { background:"white", color:"#64748b", border:"2px solid #e2e8f0",
-  borderRadius:12, padding:"12px 20px", fontWeight:700, fontSize:13, cursor:"pointer" };
+/* ── Style constants ── */
+const lbSt  = { fontSize:12, fontWeight:700, color:"#475569", marginBottom:6, display:"block" };
+const inSt  = { padding:"10px 12px", borderRadius:10, border:"1.5px solid #e2e8f0", fontSize:13, outline:"none", background:"#f8fafc", color:"#1e293b", width:"100%", boxSizing:"border-box" };
+const primBtn = { background:"linear-gradient(120deg,#0d4f4f,#14b8a6)", color:"white", border:"none", borderRadius:12, padding:"12px 24px", fontWeight:700, fontSize:14, cursor:"pointer" };
+const outBtn  = { background:"white", color:"#64748b", border:"2px solid #e2e8f0", borderRadius:12, padding:"12px 20px", fontWeight:700, fontSize:13, cursor:"pointer" };
