@@ -259,3 +259,79 @@ FOREIGN KEY (appt_id) REFERENCES appointments(id) ON DELETE SET NULL;
 -- Admin logs in → Doctors → Add Doctor.
 -- System auto-generates Doctor ID (D001, D002...).
 -- Doctor uses email + password + Doctor ID to login.
+
+
+
+
+
+
+
+-- ============================================================
+--   APPOINTMENTS TABLE FIX
+--   MySQL Workbench mein run karo — step by step
+-- ============================================================
+
+USE hospital_db;
+
+-- STEP 1: Pehle dekho actual columns kya hain
+SHOW COLUMNS FROM appointments;
+
+-- ============================================================
+-- STEP 2: Agar column names different hain to yeh run karo
+-- (sirf wo ALTER chalao jo zaroori ho)
+-- ============================================================
+
+-- Agar column ka naam 'appointment_date' hai to rename karo:
+-- ALTER TABLE appointments RENAME COLUMN appointment_date TO date;
+
+-- Agar column ka naam 'appointment_time' hai to rename karo:
+-- ALTER TABLE appointments RENAME COLUMN appointment_time TO time_slot;
+
+-- Agar column 'slot_time' hai to:
+-- ALTER TABLE appointments RENAME COLUMN slot_time TO time_slot;
+
+-- ============================================================
+-- FASTEST FIX: Agar appointments table bilkul galat hai
+-- to drop karke dobara banao (data jayega lekin test data hi hoga)
+-- ============================================================
+
+-- Option A: Drop and recreate (safest if no real data yet)
+DROP TABLE IF EXISTS appointment_slots;
+DROP TABLE IF EXISTS appointments;
+
+CREATE TABLE appointments (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id    INT  NOT NULL,
+    doctor_id     INT  NOT NULL,
+    date          DATE NOT NULL,
+    time_slot     VARCHAR(20) NOT NULL,
+    visit_type    ENUM('in-person','online') DEFAULT 'in-person',
+    status        ENUM('Pending','Confirmed','Completed','Cancelled') DEFAULT 'Pending',
+    problem       TEXT,
+    notes         TEXT,
+    ai_analysis   TEXT        DEFAULT NULL,
+    ai_risk       VARCHAR(20) DEFAULT NULL,
+    cancel_reason TEXT        DEFAULT NULL,
+    created_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id)  REFERENCES doctors(id)  ON DELETE CASCADE
+);
+
+CREATE TABLE appointment_slots (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id   INT      NOT NULL,
+    slot_date   DATE     NOT NULL,
+    slot_time   VARCHAR(8) NOT NULL,
+    is_booked   BOOLEAN  DEFAULT FALSE,
+    appt_id     INT      DEFAULT NULL,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_slot (doctor_id, slot_date, slot_time)
+);
+
+ALTER TABLE appointment_slots 
+ADD CONSTRAINT fk_slot_appt 
+FOREIGN KEY (appt_id) REFERENCES appointments(id) ON DELETE SET NULL;
+
+-- Verify
+SHOW COLUMNS FROM appointments;
