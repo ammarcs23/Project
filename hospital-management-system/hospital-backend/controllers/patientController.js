@@ -1,5 +1,5 @@
 // hospital-backend/controllers/patientController.js
-const db = require('../config/Db');
+const db = require('../config/db');
 
 // ══════════════════════════════════════════════
 //  ADMIN — PATIENT CRUD
@@ -104,7 +104,7 @@ const getMyAppointments = async (req, res) => {
              JOIN doctors d ON a.doctor_id=d.id
              JOIN users u   ON d.user_id=u.id
              WHERE a.patient_id=?
-             ORDER BY a.date DESC, a.time_slot ASC`,
+             ORDER BY a.created_at DESC`,
             [pt.id]
         );
         res.json({success:true,appointments});
@@ -133,7 +133,13 @@ const bookAppointment = async (req, res) => {
             [pt.id,doctor_id,date,time_slot,visit_type||'in-person',problem]
         );
         res.status(201).json({success:true,message:'Appointment booked!',appointment_id:result.insertId});
-    } catch(err){ console.error(err); res.status(500).json({success:false,message:'Server error.'}); }
+    } catch(err){
+        console.error('bookAppointment error:', err);
+        const msg = err.code === 'ER_BAD_FIELD_ERROR'
+            ? 'Database table needs update. Run fix_appointments_table.sql in MySQL Workbench.'
+            : 'Server error.';
+        res.status(500).json({success:false,message:msg});
+    }
 };
 
 const cancelAppointment = async (req, res) => {
@@ -169,8 +175,11 @@ const getActiveDoctors = async (req, res) => {
              FROM doctors d JOIN users u ON d.user_id=u.id
              WHERE d.status='Active' ORDER BY d.specialty, u.name`
         );
-        res.json({success:true,doctors});
-    } catch(err){ res.status(500).json({success:false,message:'Server error.'}); }
+        res.json({success:true, doctors});
+    } catch(err) {
+        console.error('getActiveDoctors error:', err);
+        res.status(500).json({success:false, message:'Could not load doctors.'});
+    }
 };
 
 module.exports = {

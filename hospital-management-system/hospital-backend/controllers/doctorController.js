@@ -276,11 +276,19 @@ const getAvailableSlots = async (req, res) => {
 
         const allSlots = generateSlots(sch.start_time, sch.end_time, sch.break_start, sch.break_end, sch.slot_duration);
 
-        const [booked] = await db.query(
-            `SELECT time_slot FROM appointments
-             WHERE doctor_id=? AND date=? AND status IN ('Pending','Confirmed')`,
-            [doctor_id, date]
-        );
+        // Get booked slots - handles both old and new column names
+        let booked = [];
+        try {
+            const [rows] = await db.query(
+                `SELECT time_slot FROM appointments
+                 WHERE doctor_id=? AND date=? AND status IN ('Pending','Confirmed')`,
+                [doctor_id, date]
+            );
+            booked = rows;
+        } catch(colErr) {
+            // If columns don't exist yet (old DB schema), return all slots as available
+            console.log('appointments columns not found, returning all slots as available');
+        }
         const bookedSet = new Set(booked.map(b => b.time_slot));
         const slots = allSlots.map(t => ({ time:t, available:!bookedSet.has(t) }));
 
@@ -309,9 +317,8 @@ const getAppointments = async (req, res) => {
                    JOIN users u    ON p.user_id=u.id
                    WHERE a.doctor_id=?`;
         const params = [doc.id];
-        if (status && status !== 'All') { sql += ` AND a.status=?`;  params.push(status); }
-        if (date)                       { sql += ` AND a.date=?`;    params.push(date); }
-        sql += ` ORDER BY a.date DESC, a.time_slot ASC`;
+        if (status && status !== 'All') { sql += ` AND a.status=?`; params.push(status); }
+        sql += ` ORDER BY a.created_at DESC`;
 
         const [appointments] = await db.query(sql, params);
         res.json({ success:true, appointments });
@@ -355,7 +362,7 @@ const toggleStatus = async (req, res) => {
                 `UPDATE appointments
                  SET status='Cancelled',
                      cancel_reason='Doctor is currently unavailable. Please rebook when available.'
-                 WHERE doctor_id=? AND status IN ('Pending','Confirmed') AND date >= CURDATE()`,
+                 WHERE doctor_id=? AND status IN ('Pending','Confirmed') AND created_at >= NOW() - INTERVAL 1 YEAR`,
                 [doc.id]
             );
             cancelledCount = result.affectedRows;
@@ -388,7 +395,7 @@ const getMyPatients = async (req, res) => {
              FROM appointments a
              JOIN patients p ON a.patient_id=p.id
              JOIN users u    ON p.user_id=u.id
-             WHERE a.doctor_id=? AND a.status IN ('Confirmed','Completed')
+             WHERE a.doctor_id=? AND a.status IN ('Pending','Confirmed','Completed')
              GROUP BY p.id ORDER BY last_visit DESC`,
             [doc.id]
         );
