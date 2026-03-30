@@ -5,7 +5,7 @@ const API = "http://localhost:5000/api/doctor";
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
 
 /* ── API Helper ── */
-const api = async (url, method="GET", body=null, isForm=false) => {
+const api = async (url, method="GET", body=null, isForm=false) =>{
     const token = localStorage.getItem("hospital_token");
     const opts  = { method, headers: { Authorization: `Bearer ${token}` } };
     if (body) {
