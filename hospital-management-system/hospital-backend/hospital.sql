@@ -335,3 +335,127 @@ FOREIGN KEY (appt_id) REFERENCES appointments(id) ON DELETE SET NULL;
 
 -- Verify
 SHOW COLUMNS FROM appointments;
+
+
+
+
+
+
+
+
+
+
+
+
+-- ============================================================
+--   APPOINTMENTS TABLE FINAL FIX
+--   MySQL Workbench mein run karo — ek ek block alag se
+-- ============================================================
+
+USE hospital_db;
+
+-- ── BLOCK 1: Pehle dekho current table structure ──────────
+SHOW COLUMNS FROM appointments;
+
+-- ── BLOCK 2: Drop both tables (order matters - slots first)
+DROP TABLE IF EXISTS appointment_slots;
+DROP TABLE IF EXISTS appointments;
+
+-- ── BLOCK 3: Recreate appointments with CORRECT columns ───
+CREATE TABLE appointments (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id    INT  NOT NULL,
+    doctor_id     INT  NOT NULL,
+    date          DATE NOT NULL,
+    time_slot     VARCHAR(20) NOT NULL,
+    visit_type    ENUM('in-person','online') DEFAULT 'in-person',
+    status        ENUM('Pending','Confirmed','Completed','Cancelled') DEFAULT 'Pending',
+    problem       TEXT,
+    notes         TEXT,
+    ai_analysis   TEXT        DEFAULT NULL,
+    ai_risk       VARCHAR(20) DEFAULT NULL,
+    cancel_reason TEXT        DEFAULT NULL,
+    created_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id)  REFERENCES doctors(id)  ON DELETE CASCADE
+);
+
+-- ── BLOCK 4: Recreate appointment_slots ───────────────────
+CREATE TABLE appointment_slots (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id   INT        NOT NULL,
+    slot_date   DATE       NOT NULL,
+    slot_time   VARCHAR(8) NOT NULL,
+    is_booked   BOOLEAN    DEFAULT FALSE,
+    appt_id     INT        DEFAULT NULL,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_slot (doctor_id, slot_date, slot_time)
+);
+
+ALTER TABLE appointment_slots
+ADD CONSTRAINT fk_slot_appt
+FOREIGN KEY (appt_id) REFERENCES appointments(id) ON DELETE SET NULL;
+
+-- ── BLOCK 5: Verify ───────────────────────────────────────
+SHOW COLUMNS FROM appointments;
+SELECT 'appointments table ready!' as status;
+
+
+
+
+
+
+-- ============================================================
+--   APPOINTMENTS TABLE FINAL FIX
+--   MySQL Workbench mein run karo — ek ek block alag se
+-- ============================================================
+
+USE hospital_db;
+
+-- ── BLOCK 1: Pehle dekho current table structure ──────────
+SHOW COLUMNS FROM appointments;
+
+-- ── BLOCK 2: Drop both tables (order matters - slots first)
+DROP TABLE IF EXISTS appointment_slots;
+DROP TABLE IF EXISTS appointments;
+
+-- ── BLOCK 3: Recreate appointments with CORRECT columns ───
+CREATE TABLE appointments (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id    INT  NOT NULL,
+    doctor_id     INT  NOT NULL,
+    date          DATE NOT NULL,
+    time_slot     VARCHAR(20) NOT NULL,
+    visit_type    ENUM('in-person','online') DEFAULT 'in-person',
+    status        ENUM('Pending','Confirmed','Completed','Cancelled') DEFAULT 'Pending',
+    problem       TEXT,
+    notes         TEXT,
+    ai_analysis   TEXT        DEFAULT NULL,
+    ai_risk       VARCHAR(20) DEFAULT NULL,
+    cancel_reason TEXT        DEFAULT NULL,
+    created_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id)  REFERENCES doctors(id)  ON DELETE CASCADE
+);
+
+-- ── BLOCK 4: Recreate appointment_slots ───────────────────
+CREATE TABLE appointment_slots (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id   INT        NOT NULL,
+    slot_date   DATE       NOT NULL,
+    slot_time   VARCHAR(8) NOT NULL,
+    is_booked   BOOLEAN    DEFAULT FALSE,
+    appt_id     INT        DEFAULT NULL,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_slot (doctor_id, slot_date, slot_time)
+);
+
+ALTER TABLE appointment_slots
+ADD CONSTRAINT fk_slot_appt
+FOREIGN KEY (appt_id) REFERENCES appointments(id) ON DELETE SET NULL;
+
+-- ── BLOCK 5: Verify ───────────────────────────────────────
+SHOW COLUMNS FROM appointments;
+SELECT 'appointments table ready!' as status;

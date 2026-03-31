@@ -388,15 +388,18 @@ const getMyPatients = async (req, res) => {
         if (!doc) return res.status(404).json({ success:false, message:'Doctor not found.' });
 
         const [patients] = await db.query(
-            `SELECT p.*, u.name, u.email,
-                    COUNT(a.id)  as visit_count,
-                    MAX(a.date)  as last_visit,
-                    MAX(a.ai_risk) as latest_risk
+            `SELECT p.id, p.age, p.gender, p.blood_type, p.phone, p.avatar,
+                    p.condition_ as condition_,
+                    u.name, u.email,
+                    COUNT(a.id)          as visit_count,
+                    MAX(a.created_at)    as last_visit,
+                    MAX(a.ai_risk)       as latest_risk
              FROM appointments a
-             JOIN patients p ON a.patient_id=p.id
-             JOIN users u    ON p.user_id=u.id
+             JOIN patients p ON a.patient_id = p.id
+             JOIN users u    ON p.user_id = u.id
              WHERE a.doctor_id=? AND a.status IN ('Pending','Confirmed','Completed')
-             GROUP BY p.id ORDER BY last_visit DESC`,
+             GROUP BY p.id, p.age, p.gender, p.blood_type, p.phone, p.avatar, p.condition_, u.name, u.email
+             ORDER BY last_visit DESC`,
             [doc.id]
         );
         res.json({ success:true, patients });
