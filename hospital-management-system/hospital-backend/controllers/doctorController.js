@@ -315,7 +315,7 @@ const getAppointments = async (req, res) => {
                           p.age,
                           p.gender,
                           p.phone     AS patient_phone,
-                          p.condition_ AS condition,
+                          p.condition_ AS patient_condition,
                           p.blood_type,
                           p.avatar    AS patient_avatar
                    FROM appointments a
