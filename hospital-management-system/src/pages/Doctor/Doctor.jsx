@@ -5,7 +5,7 @@ const API  = "http://localhost:5000/api/doctor";
 const ANTH = "https://api.anthropic.com/v1/messages";
 
 const api = async (url, method="GET", body=null, isForm=false) => {
-    const token = localStorage.getItem("hospital_token");
+    const token = localStorage.getItem("hospital_token_doctor");
     if (!token) { window.location.href = "/login"; return { success:false, message:"Not logged in." }; }
     const opts  = { method, headers:{ Authorization:`Bearer ${token}` } };
     if (body) {
@@ -16,8 +16,8 @@ const api = async (url, method="GET", body=null, isForm=false) => {
     const data = await res.json();
     // Token expired or invalid — clear and redirect
     if (res.status === 401) {
-        localStorage.removeItem("hospital_token");
-        localStorage.removeItem("hospital_user");
+        localStorage.removeItem("hospital_token_doctor");
+        localStorage.removeItem("hospital_user_doctor");
         window.location.href = "/login";
         return { success:false, message:"Session expired. Please login again." };
     }
@@ -347,7 +347,7 @@ export default function DoctorDashboard() {
     const [profPrev,    setProfPrev]    = useState(null);
     const profRef = useRef();
 
-    const user      = JSON.parse(localStorage.getItem("hospital_user")||"{}");
+    const user      = JSON.parse(localStorage.getItem("hospital_user_doctor")||"{}");
     const showToast = (msg,ok=true) => { setToast({msg,ok}); setTimeout(()=>setToast(null),3000); };
 
     /* ── Load ── */
@@ -577,7 +577,7 @@ export default function DoctorDashboard() {
                         </button>
                     ))}
                 </div>
-                <button onClick={()=>{localStorage.removeItem("hospital_token");localStorage.removeItem("hospital_user");navigate("/login");}} style={{margin:"0 10px",display:"flex",alignItems:"center",gap:10,padding:"11px 14px",border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"rgba(255,255,255,0.5)",fontSize:13,fontWeight:600,cursor:"pointer",borderRadius:12}}>
+                <button onClick={()=>{localStorage.removeItem("hospital_token_doctor");localStorage.removeItem("hospital_user_doctor");navigate("/login");}} style={{margin:"0 10px",display:"flex",alignItems:"center",gap:10,padding:"11px 14px",border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"rgba(255,255,255,0.5)",fontSize:13,fontWeight:600,cursor:"pointer",borderRadius:12}}>
                     ↩ Logout
                 </button>
             </div>

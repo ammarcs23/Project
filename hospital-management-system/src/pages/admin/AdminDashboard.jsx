@@ -6,7 +6,7 @@ const API = "http://localhost:5000/api/admin";
 
 /* ── API Helper ── */
 const api = async (url, method="GET", body=null, isForm=false) => {
-    const token = localStorage.getItem("hospital_token");
+    const token = localStorage.getItem("hospital_token_admin");
     if (!token) { window.location.href = "/login"; return { success:false, message:"Not logged in." }; }
     const opts  = { method, headers: { Authorization: `Bearer ${token}` } };
     if (body) {
@@ -16,8 +16,8 @@ const api = async (url, method="GET", body=null, isForm=false) => {
     const res  = await fetch(`${API}${url}`, opts);
     const data = await res.json();
     if (res.status === 401) {
-        localStorage.removeItem("hospital_token");
-        localStorage.removeItem("hospital_user");
+        localStorage.removeItem("hospital_token_admin");
+        localStorage.removeItem("hospital_user_admin");
         window.location.href = "/login";
         return { success:false, message:"Session expired. Please login again." };
     }
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
     const [hpTab,   setHpTab]   = useState("banner");
     const [hpSaved, setHpSaved] = useState(false);
 
-    const user        = JSON.parse(localStorage.getItem("hospital_user")||"{}");
+    const user        = JSON.parse(localStorage.getItem("hospital_user_admin")||"{}");
     const showToast   = (msg,ok=true) => { setToast({msg,ok}); setTimeout(()=>setToast(null),3000); };
 
     /* ── Load data ── */
@@ -171,8 +171,8 @@ export default function AdminDashboard() {
 
     /* ── Logout ── */
     const handleLogout = () => {
-        localStorage.removeItem("hospital_token");
-        localStorage.removeItem("hospital_user");
+        localStorage.removeItem("hospital_token_admin");
+        localStorage.removeItem("hospital_user_admin");
         navigate("/login");
     };
 

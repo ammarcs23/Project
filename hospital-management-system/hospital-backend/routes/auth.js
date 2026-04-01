@@ -1,15 +1,12 @@
-const express  = require('express');
-const router   = express.Router();
-const { register, login, getMe } = require('../controllers/authController');
+// hospital-backend/routes/auth.js
+const express = require('express');
+const router  = express.Router();
 const { protect } = require('../middleware/authMiddleware');
+const { sendOTP, verifyOTP, login, getMe } = require('../controllers/authController');
 
-// POST /api/auth/register  → Patient registration
-router.post('/register', register);
-
-// POST /api/auth/login     → All roles login
-router.post('/login', login);
-
-// GET  /api/auth/me        → Get logged in user (protected)
-router.get('/me', protect, getMe);
+router.post('/send-otp',    sendOTP);
+router.post('/verify-otp',  verifyOTP);
+router.post('/login',       login);
+router.get ('/me',          protect, getMe);
 
 module.exports = router;

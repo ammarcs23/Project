@@ -49,10 +49,11 @@ export default function Signup1() {
 
   const set = k => e => setForm(p=>({...p,[k]:e.target.value}));
 
-  /* ── Save token — always localStorage so refreshes work ── */
+  /* ── Save token — role-specific keys so multiple tabs work ── */
   const saveAuth = (token, user) => {
-    localStorage.setItem('hospital_token', token);
-    localStorage.setItem('hospital_user',  JSON.stringify(user));
+    const role = user.role; // admin | doctor | patient
+    localStorage.setItem(`hospital_token_${role}`, token);
+    localStorage.setItem(`hospital_user_${role}`,  JSON.stringify(user));
   };
 
   const startTimer = () => {
@@ -79,10 +80,10 @@ export default function Signup1() {
     setLoading(true);
     try {
       if(mode==="register") {
-        const res  = await fetch(`${API}/auth/register`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:form.name,email:form.email,password:form.password})});
+        const res  = await fetch(`${API}/auth/send-otp`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:form.name,email:form.email,password:form.password})});
         const data = await res.json();
         if(!data.success){setError(data.message);setLoading(false);return;}
-        setVerifyId(data.userId); setStep("verify"); startTimer();
+        setStep("verify"); startTimer(); setError("");
       } else {
         const res  = await fetch(`${API}/auth/login`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:form.email,password:form.password,role:role.toLowerCase(),doctorId:form.doctorId||undefined,rememberMe})});
         const data = await res.json();
@@ -102,7 +103,7 @@ export default function Signup1() {
     if(otp.length!==6){setError("Enter complete 6-digit PIN.");return;}
     setLoading(true); setError("");
     try {
-      const res  = await fetch(`${API}/auth/verify`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:verifyId,pin:otp,rememberMe})});
+      const res  = await fetch(`${API}/auth/verify-otp`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:form.email,otp})});
       const data = await res.json();
       if(!data.success){setError(data.message);setLoading(false);return;}
       saveAuth(data.token,data.user);
@@ -115,7 +116,7 @@ export default function Signup1() {
     if(timer>0) return;
     setResending(true);
     try{
-      await fetch(`${API}/auth/resend-pin`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:verifyId})});
+      await fetch(`${API}/auth/send-otp`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:form.name,email:form.email,password:form.password})});
       startTimer(); setError(""); setOtp("");
     }catch{}
     setResending(false);

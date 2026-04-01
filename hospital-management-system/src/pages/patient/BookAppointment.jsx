@@ -5,7 +5,7 @@ const API   = "http://localhost:5000/api";
 const ANTH  = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
 
-const getToken = () => localStorage.getItem("hospital_token");
+const getToken = () => localStorage.getItem("hospital_token_patient");
 
 const apiCall = async (url, method="GET", body=null) => {
     const token = getToken();
@@ -15,8 +15,8 @@ const apiCall = async (url, method="GET", body=null) => {
     const res  = await fetch(`${API}${url}`,opts);
     const data = await res.json();
     if (res.status === 401) {
-        localStorage.removeItem("hospital_token");
-        localStorage.removeItem("hospital_user");
+        localStorage.removeItem("hospital_token_patient");
+        localStorage.removeItem("hospital_user_patient");
         window.location.href = "/login";
         return { success:false, message:"Session expired. Please login again." };
     }
@@ -230,7 +230,7 @@ function ConsultationModal({appt, onClose, onSaveAnalysis}) {
 ══════════════════════════════════════════════ */
 export default function BookAppointment() {
     const navigate = useNavigate();
-    const user     = JSON.parse(localStorage.getItem("hospital_user")||"{}");
+    const user     = JSON.parse(localStorage.getItem("hospital_user_patient")||"{}");
 
     // Data
     const [patient,      setPatient]      = useState(null);

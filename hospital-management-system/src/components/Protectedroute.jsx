@@ -1,48 +1,46 @@
 // src/components/Protectedroute.jsx
 import { Navigate } from 'react-router-dom';
 
-// Decode JWT payload without verification (just to read expiry)
+// ── Role-specific storage keys ─────────────────────────────
+// Each role stores its own token so multiple roles can be
+// logged in simultaneously in different tabs.
+export const tokenKey = (role) => `hospital_token_${role}`;
+export const userKey  = (role) => `hospital_user_${role}`;
+
+// Decode JWT expiry without verification
 const getTokenExpiry = (token) => {
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        return payload.exp ? payload.exp * 1000 : null; // convert to ms
-    } catch {
-        return null;
-    }
+        return payload.exp ? payload.exp * 1000 : null;
+    } catch { return null; }
 };
 
 const ProtectedRoute = ({ children, allowedRole }) => {
-    const token   = localStorage.getItem('hospital_token');
-    const userStr = localStorage.getItem('hospital_user');
+    const token   = localStorage.getItem(tokenKey(allowedRole));
+    const userStr = localStorage.getItem(userKey(allowedRole));
 
-    // 1. No token or user → login
-    if (!token || !userStr) {
-        return <Navigate to="/login" replace />;
-    }
+    // No token → login
+    if (!token || !userStr) return <Navigate to="/login" replace />;
 
-    // 2. Token expired client-side check (avoid wasted API calls)
+    // Expired → clean up + login
     const expiry = getTokenExpiry(token);
     if (expiry && Date.now() > expiry) {
-        localStorage.removeItem('hospital_token');
-        localStorage.removeItem('hospital_user');
+        localStorage.removeItem(tokenKey(allowedRole));
+        localStorage.removeItem(userKey(allowedRole));
         return <Navigate to="/login" replace />;
     }
 
-    // 3. Parse user
+    // Parse user
     let user;
-    try {
-        user = JSON.parse(userStr);
-    } catch {
-        localStorage.removeItem('hospital_token');
-        localStorage.removeItem('hospital_user');
+    try { user = JSON.parse(userStr); }
+    catch {
+        localStorage.removeItem(tokenKey(allowedRole));
+        localStorage.removeItem(userKey(allowedRole));
         return <Navigate to="/login" replace />;
     }
 
-    // 4. Wrong role → redirect to correct dashboard
-    if (allowedRole && user.role !== allowedRole) {
-        if (user.role === 'admin')   return <Navigate to="/admin"   replace />;
-        if (user.role === 'doctor')  return <Navigate to="/doctor"  replace />;
-        if (user.role === 'patient') return <Navigate to="/patient" replace />;
+    // Role mismatch (shouldn't happen with role-specific keys, safety net)
+    if (user.role !== allowedRole) {
         return <Navigate to="/login" replace />;
     }
 

@@ -5,7 +5,7 @@ const API = "http://localhost:5000/api/patient";
 
 /* ── API Helper ── */
 const api = async (url, method="GET", body=null, isForm=false) => {
-    const token = localStorage.getItem("hospital_token");
+    const token = localStorage.getItem("hospital_token_patient");
     if (!token) { window.location.href = "/login"; return { success:false, message:"Not logged in." }; }
     const opts  = { method, headers: { Authorization:`Bearer ${token}` } };
     if (body) {
@@ -15,8 +15,8 @@ const api = async (url, method="GET", body=null, isForm=false) => {
     const res  = await fetch(`${API}${url}`, opts);
     const data = await res.json();
     if (res.status === 401) {
-        localStorage.removeItem("hospital_token");
-        localStorage.removeItem("hospital_user");
+        localStorage.removeItem("hospital_token_patient");
+        localStorage.removeItem("hospital_user_patient");
         window.location.href = "/login";
         return { success:false, message:"Session expired. Please login again." };
     }
@@ -166,7 +166,7 @@ export default function PatientModule() {
     const [expandedId,   setExpandedId]   = useState(null);
     const [apptFilter,   setApptFilter]   = useState("All");
 
-    const user = JSON.parse(localStorage.getItem("hospital_user")||"{}");
+    const user = JSON.parse(localStorage.getItem("hospital_user_patient")||"{}");
     const showToast = (msg,ok=true) => { setToast({msg,ok}); setTimeout(()=>setToast(null),3000); };
 
     /* ── Load ── */
@@ -255,7 +255,7 @@ export default function PatientModule() {
                     <button onClick={()=>navigate("/book-appointment")} style={{width:"100%",padding:"11px 14px",border:"1px solid rgba(255,255,255,0.2)",background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",color:"white",borderRadius:12,fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:8,justifyContent:"center"}}>
                         🗓️ Book Appointment
                     </button>
-                    <button onClick={()=>{localStorage.removeItem("hospital_token");localStorage.removeItem("hospital_user");navigate("/login");}}
+                    <button onClick={()=>{localStorage.removeItem("hospital_token_patient");localStorage.removeItem("hospital_user_patient");navigate("/login");}}
                         style={{width:"100%",marginTop:8,padding:"10px 14px",border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"rgba(255,255,255,0.5)",borderRadius:12,fontWeight:600,fontSize:13,cursor:"pointer"}}>
                         ↩ Logout
                     </button>
