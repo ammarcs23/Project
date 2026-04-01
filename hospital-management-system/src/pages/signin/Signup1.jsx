@@ -41,11 +41,17 @@ export default function Signup1() {
   const [form,        setForm]        = useState({name:"",email:"",password:"",doctorId:""});
   const [rememberMe,  setRememberMe]  = useState(false);
   const [error,       setError]       = useState("");
+  const [success,     setSuccess]     = useState("");
   const [loading,     setLoading]     = useState(false);
   const [verifyId,    setVerifyId]    = useState(null);
   const [otp,         setOtp]         = useState("");
   const [timer,       setTimer]       = useState(0);
   const [resending,   setResending]   = useState(false);
+  // Forgot password
+  const [fEmail,      setFEmail]      = useState("");
+  const [fOtp,        setFOtp]        = useState("");
+  const [fPass,       setFPass]       = useState("");
+  const [fPass2,      setFPass2]      = useState("");
 
   const set = k => e => setForm(p=>({...p,[k]:e.target.value}));
 
@@ -122,6 +128,56 @@ export default function Signup1() {
     setResending(false);
   };
 
+  /* ── Forgot password handlers ── */
+  const handleForgot = async () => {
+    if(!fEmail){setError("Enter your email address.");return;}
+    setLoading(true); setError(""); setSuccess("");
+    try {
+      const res  = await fetch(`${API}/auth/forgot-password`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:fEmail,role:role.toLowerCase()})});
+      const data = await res.json();
+      if(!data.success){setError(data.message);setLoading(false);return;}
+      setSuccess(data.message);
+      startTimer(); setStep("forgot-otp");
+    } catch { setError("Cannot connect to server."); }
+    setLoading(false);
+  };
+
+  const handleForgotVerify = async () => {
+    if(fOtp.length!==6){setError("Enter complete 6-digit code.");return;}
+    setLoading(true); setError("");
+    try {
+      const res  = await fetch(`${API}/auth/verify-reset-otp`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:fEmail,role:role.toLowerCase(),otp:fOtp})});
+      const data = await res.json();
+      if(!data.success){setError(data.message);setLoading(false);return;}
+      setStep("new-password");
+    } catch { setError("Server error."); }
+    setLoading(false);
+  };
+
+  const handleResetPassword = async () => {
+    if(!fPass||fPass.length<6){setError("Password must be at least 6 characters.");return;}
+    if(fPass!==fPass2){setError("Passwords do not match.");return;}
+    setLoading(true); setError("");
+    try {
+      const res  = await fetch(`${API}/auth/reset-password`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:fEmail,role:role.toLowerCase(),otp:fOtp,newPassword:fPass})});
+      const data = await res.json();
+      if(!data.success){setError(data.message);setLoading(false);return;}
+      setSuccess(data.message);
+      setTimeout(()=>{ setStep("auth"); setMode("login"); setFEmail(""); setFOtp(""); setFPass(""); setFPass2(""); setSuccess(""); },2000);
+    } catch { setError("Server error."); }
+    setLoading(false);
+  };
+
+  const handleForgotResend = async () => {
+    if(timer>0) return;
+    setResending(true);
+    try {
+      await fetch(`${API}/auth/forgot-password`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:fEmail,role:role.toLowerCase()})});
+      startTimer(); setFOtp(""); setError("");
+    } catch {}
+    setResending(false);
+  };
+
   return (
     <div className="sl-page">
       <div className="sl-bg">
@@ -195,7 +251,7 @@ export default function Signup1() {
                       </div>
                       <span style={{fontSize:12,color:"rgba(255,255,255,0.5)"}}>Remember me for 30 days</span>
                     </label>
-                    <div className="sl-forgot">Forgot password?</div>
+                    <div className="sl-forgot" style={{cursor:"pointer"}} onClick={()=>{setStep("forgot");setError("");setSuccess("");setFEmail(form.email);}}>Forgot password?</div>
                   </div>
                 )}
 
@@ -242,6 +298,93 @@ export default function Signup1() {
 
               <button onClick={()=>{setStep("auth");setError("");setOtp("");}} style={{display:"block",margin:"12px auto 0",background:"none",border:"none",color:"rgba(255,255,255,0.25)",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                 ← Use different email
+              </button>
+            </div>
+          )}
+
+        {/* ── FORGOT PASSWORD — Email input ── */}
+          {step==="forgot"&&(
+            <div className="sl-step">
+              <button className="sl-back" onClick={()=>{setStep("auth");setError("");setSuccess("");}}>← Back to Login</button>
+              <div style={{textAlign:"center",marginBottom:20}}>
+                <div style={{fontSize:44,marginBottom:10}}>🔑</div>
+                <h2 style={{fontFamily:"'Syne',sans-serif",fontSize:"1.4rem",fontWeight:800,color:"white",margin:"0 0 6px"}}>Forgot Password?</h2>
+                <p style={{fontSize:13,color:"rgba(255,255,255,0.4)",margin:0,lineHeight:1.6}}>
+                  Enter your <strong style={{color:"#14b8a6"}}>{role}</strong> account email.<br/>
+                  We'll send you a 6-digit reset code.
+                </p>
+              </div>
+              <div className="sl-field">
+                <label>Email Address</label>
+                <input type="email" placeholder="you@example.com" value={fEmail} onChange={e=>setFEmail(e.target.value)}
+                  onKeyDown={e=>e.key==="Enter"&&handleForgot()}/>
+              </div>
+              {error&&<div className="sl-error">{error}</div>}
+              {success&&<div style={{background:"rgba(20,184,166,0.15)",border:"1px solid rgba(20,184,166,0.3)",borderRadius:10,padding:"10px 14px",fontSize:13,color:"#14b8a6",marginBottom:12}}>{success}</div>}
+              <button onClick={handleForgot} className={`sl-btn ${loading?"loading":""}`} disabled={loading}>
+                {loading?<span className="sl-spinner"/>:"📧 Send Reset Code"}
+              </button>
+            </div>
+          )}
+
+          {/* ── FORGOT PASSWORD — OTP verify ── */}
+          {step==="forgot-otp"&&(
+            <div className="sl-step">
+              <div style={{textAlign:"center",marginBottom:20}}>
+                <div style={{fontSize:44,marginBottom:10}}>📬</div>
+                <h2 style={{fontFamily:"'Syne',sans-serif",fontSize:"1.4rem",fontWeight:800,color:"white",margin:"0 0 8px"}}>Enter Reset Code</h2>
+                <p style={{fontSize:13,color:"rgba(255,255,255,0.4)",margin:0,lineHeight:1.7}}>
+                  Code sent to<br/>
+                  <strong style={{color:"#14b8a6",fontSize:14}}>{fEmail}</strong>
+                </p>
+              </div>
+              <OtpBox value={fOtp} onChange={setFOtp}/>
+              <div style={{textAlign:"center",fontSize:12,color:"rgba(255,255,255,0.3)",marginBottom:16}}>
+                Code expires in <strong style={{color:"rgba(255,255,255,0.5)"}}>10 minutes</strong>
+              </div>
+              {error&&<div className="sl-error" style={{marginBottom:12}}>{error}</div>}
+              <button onClick={handleForgotVerify} className={`sl-btn ${loading?"loading":""}`} disabled={loading}>
+                {loading?<span className="sl-spinner"/>:"✅ Verify Code"}
+              </button>
+              <div style={{textAlign:"center",marginTop:14}}>
+                <span style={{fontSize:12,color:"rgba(255,255,255,0.3)"}}>Didn't get it? </span>
+                <button onClick={handleForgotResend} disabled={timer>0||resending} style={{background:"none",border:"none",cursor:timer>0?"default":"pointer",fontSize:12,color:timer>0?"rgba(255,255,255,0.2)":"#14b8a6",fontWeight:600,padding:0,fontFamily:"inherit"}}>
+                  {timer>0?`Resend in ${timer}s`:resending?"Sending...":"Resend Code"}
+                </button>
+              </div>
+              <button onClick={()=>{setStep("forgot");setError("");setFOtp("");}} style={{display:"block",margin:"12px auto 0",background:"none",border:"none",color:"rgba(255,255,255,0.25)",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                ← Use different email
+              </button>
+            </div>
+          )}
+
+          {/* ── FORGOT PASSWORD — New password ── */}
+          {step==="new-password"&&(
+            <div className="sl-step">
+              <div style={{textAlign:"center",marginBottom:20}}>
+                <div style={{fontSize:44,marginBottom:10}}>🔒</div>
+                <h2 style={{fontFamily:"'Syne',sans-serif",fontSize:"1.4rem",fontWeight:800,color:"white",margin:"0 0 8px"}}>Set New Password</h2>
+                <p style={{fontSize:13,color:"rgba(255,255,255,0.4)",margin:0}}>Choose a strong password for your account</p>
+              </div>
+              <div className="sl-field">
+                <label>New Password</label>
+                <input type="password" placeholder="Min. 6 characters" value={fPass} onChange={e=>setFPass(e.target.value)}/>
+              </div>
+              <div className="sl-field" style={{marginTop:12}}>
+                <label>Confirm Password</label>
+                <input type="password" placeholder="Repeat password" value={fPass2} onChange={e=>setFPass2(e.target.value)}
+                  onKeyDown={e=>e.key==="Enter"&&handleResetPassword()}/>
+              </div>
+              {fPass&&fPass2&&fPass!==fPass2&&(
+                <div style={{fontSize:12,color:"#f87171",marginTop:4}}>⚠ Passwords do not match</div>
+              )}
+              {fPass&&fPass2&&fPass===fPass2&&fPass.length>=6&&(
+                <div style={{fontSize:12,color:"#34d399",marginTop:4}}>✓ Passwords match</div>
+              )}
+              {error&&<div className="sl-error" style={{marginTop:12}}>{error}</div>}
+              {success&&<div style={{background:"rgba(20,184,166,0.15)",border:"1px solid rgba(20,184,166,0.3)",borderRadius:10,padding:"10px 14px",fontSize:13,color:"#14b8a6",marginTop:12,textAlign:"center"}}>{success}</div>}
+              <button onClick={handleResetPassword} className={`sl-btn ${loading?"loading":""}`} disabled={loading} style={{marginTop:16}}>
+                {loading?<span className="sl-spinner"/>:"🔒 Reset Password"}
               </button>
             </div>
           )}
