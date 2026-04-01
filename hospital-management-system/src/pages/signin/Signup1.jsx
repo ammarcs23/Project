@@ -4,277 +4,244 @@ import "./Signup1.css";
 
 const API = "http://localhost:5000/api";
 
-/* ── Role Card ── */
 const RoleCard = ({ role, icon, desc, selected, onSelect }) => (
-  <div
-    className={`role-card ${selected ? "selected" : ""}`}
-    onClick={() => onSelect(role)}
-  >
+  <div className={`role-card ${selected?"selected":""}`} onClick={()=>onSelect(role)}>
     <div className="role-icon">{icon}</div>
-    <div>
-      <div className="role-label">{role}</div>
-      <div className="role-desc">{desc}</div>
-    </div>
-    <div className="role-check">{selected ? "✓" : ""}</div>
+    <div><div className="role-label">{role}</div><div className="role-desc">{desc}</div></div>
+    <div className="role-check">{selected?"✓":""}</div>
   </div>
 );
 
+const OtpBox = ({ value, onChange }) => {
+  const digits = value.split('').concat(Array(6).fill('')).slice(0,6);
+  const focus  = id => document.getElementById(id)?.focus();
+  const handle = (i,e) => {
+    const v=e.target.value.replace(/\D/,'').slice(-1);
+    const arr=[...digits]; arr[i]=v; onChange(arr.join(''));
+    if(v&&i<5) focus(`otp-${i+1}`);
+  };
+  const handleKey = (i,e) => { if(e.key==="Backspace"&&!digits[i]&&i>0) focus(`otp-${i-1}`); };
+  return (
+    <div style={{display:"flex",gap:8,justifyContent:"center",margin:"20px 0"}}>
+      {digits.map((d,i)=>(
+        <input key={i} id={`otp-${i}`} type="text" inputMode="numeric" maxLength={1}
+          value={d} onChange={e=>handle(i,e)} onKeyDown={e=>handleKey(i,e)}
+          style={{width:44,height:52,textAlign:"center",fontSize:22,fontWeight:800,borderRadius:12,border:`2px solid ${d?"#14b8a6":"rgba(255,255,255,0.1)"}`,background:"rgba(255,255,255,0.06)",color:"white",outline:"none",transition:"border 0.2s"}}
+        />
+      ))}
+    </div>
+  );
+};
+
 export default function Signup1() {
   const navigate = useNavigate();
-  const [step, setStep]       = useState("role");
-  const [role, setRole]       = useState(null);
-  const [mode, setMode]       = useState("login");
-  const [form, setForm]       = useState({ name: "", email: "", password: "", doctorId: "" });
-  const [error, setError]     = useState("");
-  const [loading, setLoading] = useState(false);
+  const [step,        setStep]        = useState("role");
+  const [role,        setRole]        = useState(null);
+  const [mode,        setMode]        = useState("login");
+  const [form,        setForm]        = useState({name:"",email:"",password:"",doctorId:""});
+  const [rememberMe,  setRememberMe]  = useState(false);
+  const [error,       setError]       = useState("");
+  const [loading,     setLoading]     = useState(false);
+  const [verifyId,    setVerifyId]    = useState(null);
+  const [otp,         setOtp]         = useState("");
+  const [timer,       setTimer]       = useState(0);
+  const [resending,   setResending]   = useState(false);
 
-  const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+  const set = k => e => setForm(p=>({...p,[k]:e.target.value}));
 
-  const handleContinue = () => {
-    if (!role) { setError("Please select your role first."); return; }
-    setError("");
-    setStep("auth");
+  /* ── Save token — always localStorage so refreshes work ── */
+  const saveAuth = (token, user) => {
+    localStorage.setItem('hospital_token', token);
+    localStorage.setItem('hospital_user',  JSON.stringify(user));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  const startTimer = () => {
+    setTimer(60);
+    const iv = setInterval(()=>setTimer(t=>{ if(t<=1){clearInterval(iv);return 0;} return t-1; }),1000);
+  };
 
-    if (!form.email || !form.password) { setError("Email and password are required."); return; }
-    if (mode === "register" && !form.name) { setError("Full name is required."); return; }
-    if (mode === "login" && role === "Doctor" && !form.doctorId) {
-      setError("Doctor ID is required. Contact admin."); return;
-    }
+  const redirect = role => {
+    if(role==="admin")  navigate("/admin");
+    else if(role==="doctor") navigate("/doctor");
+    else navigate("/patient");
+  };
 
+  const handleContinue = () => {
+    if(!role){setError("Please select your role.");return;}
+    setError(""); setStep("auth");
+  };
+
+  const handleSubmit = async e => {
+    e.preventDefault(); setError("");
+    if(!form.email||!form.password){setError("Email and password required.");return;}
+    if(mode==="register"&&!form.name){setError("Full name required.");return;}
+    if(mode==="login"&&role==="Doctor"&&!form.doctorId){setError("Doctor ID required.");return;}
     setLoading(true);
-
     try {
-      let res, data;
-
-      if (mode === "register") {
-        res  = await fetch(`${API}/auth/register`, {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ name: form.name, email: form.email, password: form.password }),
-        });
-        data = await res.json();
-
+      if(mode==="register") {
+        const res  = await fetch(`${API}/auth/register`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:form.name,email:form.email,password:form.password})});
+        const data = await res.json();
+        if(!data.success){setError(data.message);setLoading(false);return;}
+        setVerifyId(data.userId); setStep("verify"); startTimer();
       } else {
-        res  = await fetch(`${API}/auth/login`, {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({
-            email:    form.email,
-            password: form.password,
-            role:     role.toLowerCase(),
-            doctorId: form.doctorId || undefined,
-          }),
-        });
-        data = await res.json();
+        const res  = await fetch(`${API}/auth/login`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:form.email,password:form.password,role:role.toLowerCase(),doctorId:form.doctorId||undefined,rememberMe})});
+        const data = await res.json();
+        if(!data.success){
+          if(data.requiresVerification){setVerifyId(data.userId);setStep("verify");startTimer();}
+          else setError(data.message);
+          setLoading(false); return;
+        }
+        saveAuth(data.token,data.user);
+        redirect(data.user.role);
       }
-
-      if (!data.success) {
-        setError(data.message || "Something went wrong.");
-        setLoading(false);
-        return;
-      }
-
-      // Token + user save karo
-      localStorage.setItem("hospital_token", data.token);
-      localStorage.setItem("hospital_user",  JSON.stringify(data.user));
-
-      // Role ke hisaab se redirect
-      const userRole = data.user.role;
-      if      (userRole === "admin")   navigate("/admin");
-      else if (userRole === "doctor")  navigate("/doctor");
-      else                             navigate("/patient");
-
-    } catch (err) {
-      setError("Cannot connect to server. Make sure backend is running.");
-    }
-
+    } catch{setError("Cannot connect to server.");}
     setLoading(false);
+  };
+
+  const handleVerify = async () => {
+    if(otp.length!==6){setError("Enter complete 6-digit PIN.");return;}
+    setLoading(true); setError("");
+    try {
+      const res  = await fetch(`${API}/auth/verify`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:verifyId,pin:otp,rememberMe})});
+      const data = await res.json();
+      if(!data.success){setError(data.message);setLoading(false);return;}
+      saveAuth(data.token,data.user);
+      redirect(data.user.role);
+    } catch{setError("Server error.");}
+    setLoading(false);
+  };
+
+  const handleResend = async () => {
+    if(timer>0) return;
+    setResending(true);
+    try{
+      await fetch(`${API}/auth/resend-pin`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:verifyId})});
+      startTimer(); setError(""); setOtp("");
+    }catch{}
+    setResending(false);
   };
 
   return (
     <div className="sl-page">
       <div className="sl-bg">
-        <div className="sl-orb sl-orb-1" />
-        <div className="sl-orb sl-orb-2" />
-        <div className="sl-orb sl-orb-3" />
-        <div className="sl-grid" />
+        <div className="sl-orb sl-orb-1"/><div className="sl-orb sl-orb-2"/><div className="sl-orb sl-orb-3"/>
+        <div className="sl-grid"/>
       </div>
-
       <div className="sl-card">
-
-        {/* ── Left Panel ── */}
+        {/* Left */}
         <div className="sl-left">
           <div className="sl-brand">
             <div className="sl-brand-icon">🏥</div>
-            <div>
-              <div className="sl-brand-name">MediCare<span>+</span></div>
-              <div className="sl-brand-sub">Advanced Hospital System</div>
-            </div>
+            <div><div className="sl-brand-name">MediCare<span>+</span></div><div className="sl-brand-sub">Advanced Hospital System</div></div>
           </div>
-
           <div className="sl-left-body">
-            <h1 className="sl-headline">
-              Your Health,<br />
-              <span>Our Priority</span>
-            </h1>
-            <p className="sl-tagline">
-              Seamlessly connect with doctors, manage appointments,
-              and access your complete health records — all in one place.
-            </p>
+            <h1 className="sl-headline">Your Health,<br/><span>Our Priority</span></h1>
+            <p className="sl-tagline">Seamlessly connect with doctors, manage appointments, and access your health records.</p>
             <div className="sl-stats">
-              {[["500+","Beds"],["150+","Doctors"],["50K+","Patients"],["24/7","Support"]].map(([v,l]) => (
-                <div key={l} className="sl-stat">
-                  <div className="sl-stat-val">{v}</div>
-                  <div className="sl-stat-lbl">{l}</div>
-                </div>
+              {[["500+","Beds"],["150+","Doctors"],["50K+","Patients"],["24/7","Support"]].map(([v,l])=>(
+                <div key={l} className="sl-stat"><div className="sl-stat-val">{v}</div><div className="sl-stat-lbl">{l}</div></div>
               ))}
             </div>
           </div>
-
-          <div className="sl-left-footer">
-            Trusted healthcare since 1998 · NABH Accredited
-          </div>
+          <div className="sl-left-footer">Trusted healthcare since 1998 · NABH Accredited</div>
         </div>
 
-        {/* ── Right Panel ── */}
+        {/* Right */}
         <div className="sl-right">
 
-          {/* STEP 1 — Role Selection */}
-          {step === "role" && (
-            <div className="sl-step sl-step-role">
-              <div className="sl-step-header">
-                <h2>Welcome Back</h2>
-                <p>Who are you logging in as?</p>
-              </div>
-
+          {/* ── ROLE STEP ── */}
+          {step==="role"&&(
+            <div className="sl-step">
+              <div className="sl-step-header"><h2>Welcome Back</h2><p>Who are you logging in as?</p></div>
               <div className="role-cards">
-                <RoleCard
-                  role="Patient"
-                  icon="🧑‍⚕️"
-                  desc="Access appointments & health records"
-                  selected={role === "Patient"}
-                  onSelect={setRole}
-                />
-                <RoleCard
-                  role="Doctor"
-                  icon="👨‍⚕️"
-                  desc="Manage schedule & patient records"
-                  selected={role === "Doctor"}
-                  onSelect={setRole}
-                />
-                <RoleCard
-                  role="Admin"
-                  icon="🔐"
-                  desc="Manage hospital system & staff"
-                  selected={role === "Admin"}
-                  onSelect={setRole}
-                />
+                <RoleCard role="Patient" icon="🧑‍⚕️" desc="Access appointments & health records" selected={role==="Patient"} onSelect={setRole}/>
+                <RoleCard role="Doctor"  icon="👨‍⚕️" desc="Manage schedule & patient records"    selected={role==="Doctor"}  onSelect={setRole}/>
+                <RoleCard role="Admin"   icon="🔐"   desc="Manage hospital system & staff"       selected={role==="Admin"}   onSelect={setRole}/>
               </div>
-
-              {error && <div className="sl-error">{error}</div>}
-
+              {error&&<div className="sl-error">{error}</div>}
               <button className="sl-btn" onClick={handleContinue}>
                 Continue
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none"><path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
             </div>
           )}
 
-          {/* STEP 2 — Auth Form */}
-          {step === "auth" && (
-            <div className="sl-step sl-step-auth">
-              <button className="sl-back" onClick={() => { setStep("role"); setError(""); }}>
-                ← Back
+          {/* ── AUTH STEP ── */}
+          {step==="auth"&&(
+            <div className="sl-step">
+              <button className="sl-back" onClick={()=>{setStep("role");setError("");}}>← Back</button>
+              <div className={`sl-role-badge ${role==="Doctor"?"badge-doctor":role==="Admin"?"badge-admin":"badge-patient"}`}>
+                {role==="Doctor"?"👨‍⚕️":role==="Admin"?"🔐":"🧑‍⚕️"} {role} Portal
+              </div>
+              <div className="sl-tabs">
+                <button className={`sl-tab ${mode==="login"?"active":""}`} onClick={()=>{setMode("login");setError("");}}>Sign In</button>
+                {role==="Patient"&&<button className={`sl-tab ${mode==="register"?"active":""}`} onClick={()=>{setMode("register");setError("");}}>Register</button>}
+              </div>
+              <form className="sl-form" onSubmit={handleSubmit}>
+                {mode==="register"&&<div className="sl-field"><label>Full Name</label><input type="text" placeholder="John Smith" value={form.name} onChange={set("name")}/></div>}
+                <div className="sl-field"><label>Email Address</label><input type="email" placeholder="you@example.com" value={form.email} onChange={set("email")}/></div>
+                <div className="sl-field"><label>Password</label><input type="password" placeholder="••••••••" value={form.password} onChange={set("password")}/></div>
+                {role==="Doctor"&&mode==="login"&&(
+                  <div className="sl-field"><label>Doctor ID <span className="sl-hint">(assigned by admin)</span></label><input type="text" placeholder="D001" value={form.doctorId} onChange={set("doctorId")}/></div>
+                )}
+
+                {/* Remember Me */}
+                {mode==="login"&&(
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",margin:"2px 0"}}>
+                    <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none"}} onClick={()=>setRememberMe(p=>!p)}>
+                      <div style={{width:18,height:18,borderRadius:5,border:`2px solid ${rememberMe?"#14b8a6":"rgba(255,255,255,0.2)"}`,background:rememberMe?"#14b8a6":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>
+                        {rememberMe&&<span style={{color:"white",fontSize:11,fontWeight:800,lineHeight:1}}>✓</span>}
+                      </div>
+                      <span style={{fontSize:12,color:"rgba(255,255,255,0.5)"}}>Remember me for 30 days</span>
+                    </label>
+                    <div className="sl-forgot">Forgot password?</div>
+                  </div>
+                )}
+
+                {error&&<div className="sl-error">{error}</div>}
+                <button type="submit" className={`sl-btn ${loading?"loading":""}`} disabled={loading}>
+                  {loading?<span className="sl-spinner"/>:mode==="login"?"Sign In":"Create Account"}
+                </button>
+                {role==="Doctor"&&mode==="login"&&<div className="sl-doctor-note">Don't have a Doctor ID? Contact the hospital admin.</div>}
+                {role==="Admin"&&<div className="sl-doctor-note">Admin access is restricted. Contact your system administrator.</div>}
+              </form>
+            </div>
+          )}
+
+          {/* ── OTP VERIFICATION STEP ── */}
+          {step==="verify"&&(
+            <div className="sl-step">
+              <div style={{textAlign:"center",marginBottom:20}}>
+                <div style={{fontSize:48,marginBottom:12}}>📬</div>
+                <h2 style={{fontFamily:"'Syne',sans-serif",fontSize:"1.5rem",fontWeight:800,color:"white",margin:"0 0 8px",letterSpacing:"-0.5px"}}>Verify Your Email</h2>
+                <p style={{fontSize:13,color:"rgba(255,255,255,0.4)",margin:0,lineHeight:1.7}}>
+                  We sent a 6-digit PIN to<br/>
+                  <strong style={{color:"#14b8a6",fontSize:14}}>{form.email}</strong>
+                </p>
+              </div>
+
+              <OtpBox value={otp} onChange={setOtp}/>
+
+              <div style={{textAlign:"center",fontSize:12,color:"rgba(255,255,255,0.3)",marginBottom:16}}>
+                PIN expires in <strong style={{color:"rgba(255,255,255,0.5)"}}>10 minutes</strong>
+              </div>
+
+              {error&&<div className="sl-error" style={{marginBottom:12}}>{error}</div>}
+
+              <button onClick={handleVerify} className={`sl-btn ${loading?"loading":""}`} disabled={loading}>
+                {loading?<span className="sl-spinner"/>:"✅ Verify & Continue"}
               </button>
 
-              <div className={`sl-role-badge ${
-                role === "Doctor" ? "badge-doctor" :
-                role === "Admin"  ? "badge-admin"  : "badge-patient"
-              }`}>
-                {role === "Doctor" ? "👨‍⚕️" : role === "Admin" ? "🔐" : "🧑‍⚕️"} {role} Portal
+              <div style={{textAlign:"center",marginTop:16}}>
+                <span style={{fontSize:12,color:"rgba(255,255,255,0.3)"}}>Didn't get it? </span>
+                <button onClick={handleResend} disabled={timer>0||resending} style={{background:"none",border:"none",cursor:timer>0?"default":"pointer",fontSize:12,color:timer>0?"rgba(255,255,255,0.2)":"#14b8a6",fontWeight:600,padding:0,fontFamily:"inherit"}}>
+                  {timer>0?`Resend in ${timer}s`:resending?"Sending...":"Resend PIN"}
+                </button>
               </div>
 
-              {/* Tabs — Register sirf Patient ke liye */}
-              <div className="sl-tabs">
-                <button
-                  className={`sl-tab ${mode === "login" ? "active" : ""}`}
-                  onClick={() => { setMode("login"); setError(""); }}
-                >
-                  Sign In
-                </button>
-                {role === "Patient" && (
-                  <button
-                    className={`sl-tab ${mode === "register" ? "active" : ""}`}
-                    onClick={() => { setMode("register"); setError(""); }}
-                  >
-                    Register
-                  </button>
-                )}
-              </div>
-
-              <form className="sl-form" onSubmit={handleSubmit}>
-
-                {mode === "register" && (
-                  <div className="sl-field">
-                    <label>Full Name</label>
-                    <input type="text" placeholder="John Smith" value={form.name} onChange={set("name")} />
-                  </div>
-                )}
-
-                <div className="sl-field">
-                  <label>Email Address</label>
-                  <input type="email" placeholder="you@example.com" value={form.email} onChange={set("email")} />
-                </div>
-
-                <div className="sl-field">
-                  <label>Password</label>
-                  <input type="password" placeholder="••••••••" value={form.password} onChange={set("password")} />
-                </div>
-
-                {/* Doctor ID field */}
-                {role === "Doctor" && mode === "login" && (
-                  <div className="sl-field">
-                    <label>Doctor ID <span className="sl-hint">(assigned by admin)</span></label>
-                    <input type="text" placeholder="Your Dr.ID" value={form.doctorId} onChange={set("doctorId")} />
-                  </div>
-                )}
-
-                {error && <div className="sl-error">{error}</div>}
-
-                {mode === "login" && (
-                  <div className="sl-forgot">Forgot password?</div>
-                )}
-
-                <button
-                  type="submit"
-                  className={`sl-btn ${loading ? "loading" : ""}`}
-                  disabled={loading}
-                >
-                  {loading
-                    ? <span className="sl-spinner" />
-                    : mode === "login" ? "Sign In" : "Create Account"}
-                </button>
-
-                {role === "Doctor" && mode === "login" && (
-                  <div className="sl-doctor-note">
-                    Don't have a Doctor ID? Contact the hospital admin to get your credentials.
-                  </div>
-                )}
-
-                {role === "Admin" && (
-                  <div className="sl-doctor-note">
-                    Admin access is restricted. Contact system administrator if you have issues logging in.
-                  </div>
-                )}
-
-              </form>
+              <button onClick={()=>{setStep("auth");setError("");setOtp("");}} style={{display:"block",margin:"12px auto 0",background:"none",border:"none",color:"rgba(255,255,255,0.25)",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                ← Use different email
+              </button>
             </div>
           )}
 

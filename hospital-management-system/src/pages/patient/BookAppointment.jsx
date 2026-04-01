@@ -5,14 +5,22 @@ const API   = "http://localhost:5000/api";
 const ANTH  = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
 
-const getToken = () => localStorage.getItem("hospital_token") || sessionStorage.getItem("hospital_token");
+const getToken = () => localStorage.getItem("hospital_token");
 
 const apiCall = async (url, method="GET", body=null) => {
     const token = getToken();
+    if (!token) { window.location.href = "/login"; return { success:false, message:"Not logged in." }; }
     const opts  = {method, headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"}};
     if(body) opts.body = JSON.stringify(body);
-    const res = await fetch(`${API}${url}`,opts);
-    return res.json();
+    const res  = await fetch(`${API}${url}`,opts);
+    const data = await res.json();
+    if (res.status === 401) {
+        localStorage.removeItem("hospital_token");
+        localStorage.removeItem("hospital_user");
+        window.location.href = "/login";
+        return { success:false, message:"Session expired. Please login again." };
+    }
+    return data;
 };
 
 const claude = async (system, msgs, max_tokens=800) => {
@@ -222,7 +230,7 @@ function ConsultationModal({appt, onClose, onSaveAnalysis}) {
 ══════════════════════════════════════════════ */
 export default function BookAppointment() {
     const navigate = useNavigate();
-    const user     = JSON.parse(localStorage.getItem("hospital_user")||sessionStorage.getItem("hospital_user")||"{}");
+    const user     = JSON.parse(localStorage.getItem("hospital_user")||"{}");
 
     // Data
     const [patient,      setPatient]      = useState(null);
@@ -250,9 +258,16 @@ export default function BookAppointment() {
     const showToast = (msg,ok=true)=>{setToast({msg,ok});setTimeout(()=>setToast(null),3000);};
 
     const loadAll = useCallback(async()=>{
-        const[p,d,a]=await Promise.all([apiCall('/patient/profile'),apiCall('/patient/doctors'),apiCall('/patient/appointments')]);
+        // Load doctors separately — always keep them fresh
+        const dData = await apiCall('/patient/doctors');
+        if(dData.success && dData.doctors?.length > 0) setAllDoctors(dData.doctors);
+
+        // Load profile and appointments
+        const[p,a]=await Promise.all([
+            apiCall('/patient/profile'),
+            apiCall('/patient/appointments')
+        ]);
         if(p.success) setPatient(p.patient);
-        if(d.success) setAllDoctors(d.doctors);
         if(a.success) setAppointments(a.appointments);
     },[]);
     useEffect(()=>{loadAll();},[loadAll]);
@@ -276,8 +291,15 @@ export default function BookAppointment() {
         setBooking(true);
         const data=await apiCall('/patient/appointments','POST',{doctor_id:selectedDr.id,...form});
         setBooking(false);
-        if(data.success){showToast("Appointment booked! ✅");resetWizard();loadAll();}
-        else showToast(data.message,false);
+        if(data.success){
+            showToast("Appointment booked! ✅");
+            resetWizard();
+            // Reload appointments + keep doctors
+            const[a]=await Promise.all([apiCall('/patient/appointments')]);
+            if(a.success) setAppointments(a.appointments);
+        } else {
+            showToast(data.message||"Booking failed.",false);
+        }
     };
 
     const handleCancel=async id=>{
@@ -293,8 +315,12 @@ export default function BookAppointment() {
     };
 
     const resetWizard=()=>{
-        setSubstep("specialty");setSelectedSpec(null);setSelectedDr(null);
-        setForm({date:"",time_slot:"",visit_type:"in-person",problem:""});setSlots([]);
+        setSubstep("specialty");
+        setSelectedSpec(null);
+        setSelectedDr(null);
+        setForm({date:"",time_slot:"",visit_type:"in-person",problem:""});
+        setSlots([]);
+        // allDoctors is NOT reset — keep them loaded so specialty cards stay visible
     };
 
     // Step numbers for progress bar

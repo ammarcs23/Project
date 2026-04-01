@@ -6,13 +6,22 @@ const ANTH = "https://api.anthropic.com/v1/messages";
 
 const api = async (url, method="GET", body=null, isForm=false) => {
     const token = localStorage.getItem("hospital_token");
+    if (!token) { window.location.href = "/login"; return { success:false, message:"Not logged in." }; }
     const opts  = { method, headers:{ Authorization:`Bearer ${token}` } };
     if (body) {
         if (isForm) opts.body = body;
         else { opts.headers["Content-Type"]="application/json"; opts.body=JSON.stringify(body); }
     }
-    const res = await fetch(`${API}${url}`, opts);
-    return res.json();
+    const res  = await fetch(`${API}${url}`, opts);
+    const data = await res.json();
+    // Token expired or invalid — clear and redirect
+    if (res.status === 401) {
+        localStorage.removeItem("hospital_token");
+        localStorage.removeItem("hospital_user");
+        window.location.href = "/login";
+        return { success:false, message:"Session expired. Please login again." };
+    }
+    return data;
 };
 
 const aiCall = async (system, messages, max_tokens=800) => {
@@ -90,6 +99,7 @@ function OnlineConsultModal({ appt, onClose, onSaveAI }) {
     const sendMsg = async () => {
         const msg=drInput.trim(); if(!msg) return;
         setDrConvo(p=>[...p,{role:chatRole,text:msg,time:now()}]); setDrInput("");
+        // If doctor sends: AI replies as patient
         if(chatRole==="doctor") {
             setDrLoad(true);
             try {
@@ -126,6 +136,7 @@ function OnlineConsultModal({ appt, onClose, onSaveAI }) {
     return (
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
             <div style={{background:"white",borderRadius:20,width:"100%",maxWidth:860,maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)",overflow:"hidden"}}>
+                {/* Header */}
                 <div style={{background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:12}}>
                         <img src={ptAv} alt="" style={{width:42,height:42,borderRadius:"50%",objectFit:"cover",border:"2px solid rgba(255,255,255,0.4)"}}/>
@@ -145,6 +156,7 @@ function OnlineConsultModal({ appt, onClose, onSaveAI }) {
                         <button onClick={saveClose} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
                     </div>
                 </div>
+                {/* Tabs */}
                 <div style={{display:"flex",borderBottom:"2px solid #f1f5f9",flexShrink:0}}>
                     {[["chat","💬 Consultation","Live chat with patient"],["ai","🧠 AI Analysis","Clinical assessment"]].map(([id,label,sub])=>(
                         <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"10px 8px",border:"none",cursor:"pointer",background:tab===id?"white":"#f8fafc",borderBottom:tab===id?"2px solid #0d4f4f":"2px solid transparent"}}>
@@ -154,6 +166,7 @@ function OnlineConsultModal({ appt, onClose, onSaveAI }) {
                     ))}
                 </div>
                 <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+                    {/* Chat Tab */}
                     {tab==="chat"&&(
                         <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
                             <div style={{background:"#f0fdf4",padding:"8px 16px",borderBottom:"1px solid #dcfce7",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -187,8 +200,10 @@ function OnlineConsultModal({ appt, onClose, onSaveAI }) {
                             </div>
                         </div>
                     )}
+                    {/* AI Tab */}
                     {tab==="ai"&&(
                         <div style={{flex:1,overflowY:"auto",padding:"18px 20px"}}>
+                            {/* Patient summary */}
                             <div style={{background:"#f0fdfb",borderRadius:12,padding:"14px 16px",marginBottom:16,border:"1px solid #ccfbf1"}}>
                                 <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
                                     <img src={ptAv} alt="" style={{width:44,height:44,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
@@ -199,6 +214,7 @@ function OnlineConsultModal({ appt, onClose, onSaveAI }) {
                                 </div>
                                 <div style={{fontSize:12,color:"#374151",background:"white",padding:"10px 12px",borderRadius:8,border:"1px solid #e2e8f0"}}><strong>Problem:</strong> {appt.problem}</div>
                             </div>
+                            {/* Risk selector */}
                             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
                                 <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>Risk Level:</div>
                                 <div style={{display:"flex",gap:6}}>
@@ -209,6 +225,7 @@ function OnlineConsultModal({ appt, onClose, onSaveAI }) {
                                     ))}
                                 </div>
                             </div>
+                            {/* Analysis textarea */}
                             <div style={{marginBottom:12}}>
                                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                                     <label style={{fontSize:12,fontWeight:700,color:"#475569"}}>AI Clinical Analysis</label>
@@ -238,6 +255,7 @@ function PatientDetailModal({ patient, appointments, onClose }) {
 
     return (
         <Modal title="👤 Patient Details" onClose={onClose} maxW={620}>
+            {/* Patient header */}
             <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20,background:"linear-gradient(120deg,#f0fdfb,#ccfbf1)",borderRadius:14,padding:"14px 16px"}}>
                 <img src={ptAv} alt={patient.name} style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",border:"3px solid #14b8a6",flexShrink:0}}/>
                 <div style={{flex:1}}>
@@ -252,6 +270,7 @@ function PatientDetailModal({ patient, appointments, onClose }) {
                     </div>
                 </div>
             </div>
+            {/* Tabs */}
             <div style={{display:"flex",gap:6,marginBottom:16}}>
                 {[["info","📋 Info"],["appointments","📅 Appointments"]].map(([id,label])=>(
                     <button key={id} onClick={()=>setTab(id)} style={{padding:"7px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,background:tab===id?"#0d4f4f":"#f1f5f9",color:tab===id?"white":"#64748b"}}>
@@ -259,6 +278,7 @@ function PatientDetailModal({ patient, appointments, onClose }) {
                     </button>
                 ))}
             </div>
+            {/* Info Tab */}
             {tab==="info"&&(
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     {[
@@ -278,6 +298,7 @@ function PatientDetailModal({ patient, appointments, onClose }) {
                     ))}
                 </div>
             )}
+            {/* Appointments Tab */}
             {tab==="appointments"&&(
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                     {ptAppts.length===0
@@ -332,10 +353,7 @@ export default function DoctorDashboard() {
     /* ── Load ── */
     const loadAll = async () => {
         const [d,a,p,s] = await Promise.all([
-            api('/profile'),
-            api('/appointments'),
-            api('/patients'),
-            api('/schedule')
+            api('/profile'), api('/appointments'), api('/patients'), api('/schedule')
         ]);
         if(d.success) {
             setDoctor(d.doctor);
@@ -343,10 +361,7 @@ export default function DoctorDashboard() {
             setProfPrev(d.doctor.avatar?`http://localhost:5000${d.doctor.avatar}`:null);
         }
         if(a.success) setAppointments(a.appointments);
-
-        // ✅ FIX: patients API se milne wala data store karo
         if(p.success) setPatients(p.patients);
-
         if(s.success) {
             const ex={};
             s.schedule.forEach(r=>ex[r.day]=r);
@@ -401,6 +416,7 @@ export default function DoctorDashboard() {
     /* ── Derived ── */
     const today = todayStr();
 
+    // Today's appointments
     const todayAppts = appointments.filter(a => {
         const aDate = a.date || a.appointment_date || "";
         return aDate === today || a.created_at?.startsWith(today);
@@ -412,18 +428,18 @@ export default function DoctorDashboard() {
         return ms && md;
     });
 
-    // ✅ FIX: derivedPatients — appointments se patients build karo
-    // Appointments mein ab p.id as patient_id clearly aa raha hai backend se
+    // Build unique patient list from appointments (single source of truth)
+    // appointments already contain: patient_name, age, gender, blood_type, patient_phone, condition, patient_avatar, patient_id
+    // patients API gives us: email + visit_count + last_visit + latest_risk
+    // We merge them by patient_id
     const derivedPatients = (() => {
-        const map = new Map();
-
+        const map = new Map(); // patient_id -> merged object
+        // First pass: group appointments by patient_id
         appointments
           .filter(a => a.status !== "Cancelled")
           .forEach(a => {
-            // ✅ patient_id appointment mein hoga ab clearly
             const pid = a.patient_id;
             if (!pid) return;
-
             if (!map.has(pid)) {
                 map.set(pid, {
                     id:           pid,
@@ -445,34 +461,20 @@ export default function DoctorDashboard() {
             const p = map.get(pid);
             p.visit_count++;
             p.appts.push(a);
-
-            // Sab se bura risk track karo
-            if (a.ai_risk) {
-                if (!p.latest_risk) p.latest_risk = a.ai_risk;
-                else if (a.ai_risk === "High") p.latest_risk = "High";
-                else if (a.ai_risk === "Medium" && p.latest_risk !== "High") p.latest_risk = "Medium";
-            }
-
-            // Last visit date
-            const aDate = a.date || "";
+            // Track latest risk
+            if (a.ai_risk && (!p.latest_risk || a.ai_risk === "High")) p.latest_risk = a.ai_risk;
+            // Track last visit date
+            const aDate = a.date || a.appointment_date || "";
             if (aDate && (!p.last_visit || aDate > p.last_visit)) p.last_visit = aDate;
         });
-
-        // ✅ patients API se email aur extra info merge karo
+        // Second pass: merge email from patients API array (match by id)
         patients.forEach(pt => {
             if (map.has(pt.id)) {
                 const p = map.get(pt.id);
                 p.email       = pt.email       || p.email;
                 p.latest_risk = pt.latest_risk || p.latest_risk;
-                // patients API se extra info bhi lo
-                p.age         = p.age         || pt.age;
-                p.gender      = p.gender      || pt.gender;
-                p.blood_type  = p.blood_type  || pt.blood_type;
-                p.phone       = p.phone       || pt.phone;
-                p.condition_  = p.condition_  || pt.condition_;
             }
         });
-
         return Array.from(map.values()).sort((a,b) => (b.last_visit||"") > (a.last_visit||"") ? 1 : -1);
     })();
 
@@ -504,8 +506,10 @@ export default function DoctorDashboard() {
                 </Modal>
             )}
 
+            {/* Online Consultation Modal */}
             {onlineModal&&<OnlineConsultModal appt={onlineModal} onClose={()=>setOnlineModal(null)} onSaveAI={saveAI}/>}
 
+            {/* AI Analysis Modal (for in-person) */}
             {aiModal&&(
                 <Modal title="🤖 AI Patient Analysis" onClose={()=>setAiModal(null)} maxW={600}>
                     <div style={{background:"#f0fdfb",borderRadius:12,padding:"12px 16px",marginBottom:16,border:"1px solid #ccfbf1"}}>
@@ -532,8 +536,10 @@ export default function DoctorDashboard() {
                 </Modal>
             )}
 
+            {/* Patient Detail Modal */}
             {ptModal&&<PatientDetailModal patient={ptModal} appointments={appointments} onClose={()=>setPtModal(null)}/>}
 
+            {/* Mobile overlay */}
             {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:40}}/>}
 
             {/* ══ SIDEBAR ══ */}
@@ -544,6 +550,7 @@ export default function DoctorDashboard() {
                         <div><div style={{color:"white",fontWeight:800,fontSize:15}}>DocPortal</div><div style={{color:"rgba(255,255,255,0.4)",fontSize:10}}>Hospital System</div></div>
                     </div>
                 </div>
+                {/* Doctor card */}
                 <div style={{margin:"12px",background:"rgba(255,255,255,0.08)",borderRadius:12,padding:"12px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <img src={drAv} alt="" style={{width:40,height:40,borderRadius:"50%",objectFit:"cover",border:"2px solid rgba(255,255,255,0.25)",flexShrink:0}}/>
@@ -560,6 +567,7 @@ export default function DoctorDashboard() {
                         💻 {stats.online} online appointment{stats.online>1?"s":""}
                     </div>}
                 </div>
+                {/* Nav */}
                 <div style={{padding:"0 10px",flex:1,display:"flex",flexDirection:"column",gap:4}}>
                     {NAV.map(item=>(
                         <button key={item.id} onClick={()=>{setActive(item.id);setSidebarOpen(false);}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:12,border:"none",cursor:"pointer",background:active===item.id?"rgba(20,184,166,0.25)":"transparent",borderLeft:active===item.id?"3px solid #14b8a6":"3px solid transparent",color:active===item.id?"white":"rgba(255,255,255,0.6)",fontSize:13,fontWeight:600,transition:"all 0.2s",textAlign:"left"}}>
@@ -576,6 +584,7 @@ export default function DoctorDashboard() {
 
             {/* ══ MAIN ══ */}
             <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}} className="dr-main">
+                {/* Topbar */}
                 <div style={{height:60,background:"white",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",borderBottom:"1px solid #e8ecf4",position:"sticky",top:0,zIndex:30,boxShadow:"0 1px 8px rgba(0,0,0,0.04)"}}>
                     <div style={{display:"flex",alignItems:"center",gap:12}}>
                         <button onClick={()=>setSidebarOpen(true)} className="dr-burger" style={{background:"none",border:"none",fontSize:22,color:"#0d4f4f",cursor:"pointer"}}>☰</button>
@@ -610,6 +619,7 @@ export default function DoctorDashboard() {
                                 ))}
                             </div>
 
+                            {/* Online appointments alert */}
                             {stats.online>0&&(
                                 <div style={{background:"linear-gradient(120deg,#eff6ff,#dbeafe)",border:"1px solid #bfdbfe",borderRadius:14,padding:"14px 18px",marginBottom:16,display:"flex",alignItems:"center",gap:12}}>
                                     <div style={{fontSize:28}}>💻</div>
@@ -621,6 +631,7 @@ export default function DoctorDashboard() {
                                 </div>
                             )}
 
+                            {/* Today's appointments */}
                             <div style={{background:"white",borderRadius:16,padding:22,boxShadow:"0 1px 8px rgba(0,0,0,0.06)"}}>
                                 <div style={{fontWeight:800,fontSize:15,color:"#0f172a",marginBottom:14}}>📋 Today's Appointments</div>
                                 {todayAppts.length===0
@@ -732,11 +743,13 @@ export default function DoctorDashboard() {
                                         </div>
                                         {a.status!=="Completed"&&a.status!=="Cancelled"&&(
                                             <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
+                                                {/* Online appointment: Chat button */}
                                                 {a.visit_type==="online"&&(
                                                     <button onClick={()=>setOnlineModal(a)} style={{padding:"7px 14px",borderRadius:8,border:"none",background:"linear-gradient(120deg,#1d4ed8,#3b82f6)",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>
                                                         💬 Start Consultation
                                                     </button>
                                                 )}
+                                                {/* In-person: AI analysis */}
                                                 {a.visit_type==="in-person"&&(
                                                     <button onClick={()=>setAiModal({...a,_analysis:a.ai_analysis})} style={{padding:"7px 14px",borderRadius:8,border:"none",background:"linear-gradient(120deg,#6366f1,#8b5cf6)",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>
                                                         🤖 AI Analysis
@@ -769,28 +782,31 @@ export default function DoctorDashboard() {
                                 : <div className="pt-grid">
                                     {derivedPatients.map(p=>{
                                         const ptAv = p.avatar ? `http://localhost:5000${p.avatar}` : uiAv(p.name);
-                                        const lastAppt = p.appts?.[0];
+                                        const ptAppts = (p.appts || appointments.filter(a=>a.patient_id===p.id));
+                                        const lastAppt = ptAppts[0];
                                         return (
                                             <div key={p.id} style={{background:"white",borderRadius:16,padding:20,boxShadow:"0 1px 8px rgba(0,0,0,0.06)",display:"flex",flexDirection:"column",gap:12}}>
+                                                {/* Patient header */}
                                                 <div style={{display:"flex",alignItems:"center",gap:12}}>
                                                     <img src={ptAv} alt={p.name} style={{width:54,height:54,borderRadius:"50%",objectFit:"cover",border:"2px solid #ccfbf1",flexShrink:0}}/>
                                                     <div style={{flex:1,minWidth:0}}>
                                                         <div style={{fontWeight:800,fontSize:14,color:"#0f172a",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
-                                                        <div style={{fontSize:11,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.email||"—"}</div>
+                                                        <div style={{fontSize:11,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.email}</div>
                                                         <div style={{marginTop:5,display:"flex",gap:6,flexWrap:"wrap"}}>
                                                             <Badge s={p.latest_risk||"Low"}/>
                                                             <span style={{fontSize:11,fontWeight:600,color:"#0d4f4f",background:"#ccfbf1",padding:"2px 8px",borderRadius:20}}>{p.visit_count||0} visit{p.visit_count!==1?"s":""}</span>
                                                         </div>
                                                     </div>
                                                 </div>
+                                                {/* Patient details */}
                                                 <div style={{background:"#f8fafc",borderRadius:10,padding:"10px 12px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 10px"}}>
                                                     {[
                                                         ["Age",        p.age        ? `${p.age} yrs` : "?"],
                                                         ["Blood",      p.blood_type || "?"],
                                                         ["Gender",     p.gender     || "?"],
-                                                        ["Phone",      p.phone || "?"],
-                                                        ["Condition",  p.condition_ || "None"],
-                                                        ["Last Visit", p.last_visit ? fmtDate(p.last_visit) : "N/A"],
+                                                        ["Phone",      p.phone || p.patient_phone || "?"],
+                                                        ["Condition",  p.condition_ || p.condition || "None"],
+                                                        ["Last Visit", p.last_visit ? fmtDate(p.last_visit.split("T")[0]) : "N/A"],
                                                     ].map(([l,v])=>(
                                                         <div key={l}>
                                                             <div style={{fontSize:10,color:"#94a3b8",marginBottom:2}}>{l}</div>
@@ -798,6 +814,7 @@ export default function DoctorDashboard() {
                                                         </div>
                                                     ))}
                                                 </div>
+                                                {/* Last appointment */}
                                                 {lastAppt&&(
                                                     <div style={{background:lastAppt.visit_type==="online"?"#eff6ff":"#f0fdfb",borderRadius:10,padding:"8px 12px",border:`1px solid ${lastAppt.visit_type==="online"?"#bfdbfe":"#ccfbf1"}`}}>
                                                         <div style={{fontSize:11,color:"#64748b",marginBottom:2}}>Latest appointment</div>
@@ -808,6 +825,7 @@ export default function DoctorDashboard() {
                                                         <div style={{fontSize:11,color:"#475569",marginTop:3}}>{lastAppt.visit_type==="online"?"💻 Online":"🏥 In-Person"} · {lastAppt.problem?.substring(0,40)}</div>
                                                     </div>
                                                 )}
+                                                {/* Actions */}
                                                 <div style={{display:"flex",gap:8}}>
                                                     <button onClick={()=>setPtModal(p)} style={{flex:1,padding:"8px",borderRadius:9,border:"none",background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>
                                                         👤 Full Details

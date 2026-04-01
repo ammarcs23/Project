@@ -7,13 +7,21 @@ const API = "http://localhost:5000/api/admin";
 /* ── API Helper ── */
 const api = async (url, method="GET", body=null, isForm=false) => {
     const token = localStorage.getItem("hospital_token");
+    if (!token) { window.location.href = "/login"; return { success:false, message:"Not logged in." }; }
     const opts  = { method, headers: { Authorization: `Bearer ${token}` } };
     if (body) {
         if (isForm) opts.body = body;
         else { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
     }
-    const res = await fetch(`${API}${url}`, opts);
-    return res.json();
+    const res  = await fetch(`${API}${url}`, opts);
+    const data = await res.json();
+    if (res.status === 401) {
+        localStorage.removeItem("hospital_token");
+        localStorage.removeItem("hospital_user");
+        window.location.href = "/login";
+        return { success:false, message:"Session expired. Please login again." };
+    }
+    return data;
 };
 
 /* ── Helpers ── */
