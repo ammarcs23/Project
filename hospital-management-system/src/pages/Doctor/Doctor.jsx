@@ -621,7 +621,7 @@ export default function DoctorDashboard() {
             {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:40}}/>}
 
             {/* ══ SIDEBAR ══ */}
-            <div style={{width:220,flexShrink:0,background:"linear-gradient(180deg,#0d4f4f,#0a3d3d)",display:"flex",flexDirection:"column",padding:"20px 0",position:"fixed",top:0,left:0,bottom:0,zIndex:50}} className="dr-sidebar">
+            <div style={{width:220,flexShrink:0,background:"linear-gradient(180deg,#0d4f4f,#0a3d3d)",display:"flex",flexDirection:"column",padding:"20px 0",position:"fixed",top:0,left:0,bottom:0,zIndex:50,transform:sidebarOpen?"translateX(0)":"",transition:"transform 0.25s ease"}} className="dr-sidebar">
                 <div style={{padding:"0 16px 18px",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <div style={{width:36,height:36,borderRadius:10,background:"#14b8a6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🏥</div>
@@ -683,16 +683,20 @@ export default function DoctorDashboard() {
                         <div>
                             <div className="stat4" style={{marginBottom:20}}>
                                 {[
-                                    ["Today",     stats.today,          "📅","linear-gradient(135deg,#0d4f4f,#14b8a6)"],
-                                    ["Pending",   stats.pending,        "⏳","linear-gradient(135deg,#d97706,#f59e0b)"],
-                                    ["Confirmed", stats.confirmed,      "✅","linear-gradient(135deg,#1d4ed8,#3b82f6)"],
-                                    ["Patients",  derivedPatients.length,"👥","linear-gradient(135deg,#7c3aed,#8b5cf6)"],
-                                ].map(([label,val,icon,bg])=>(
-                                    <div key={label} style={{background:bg,borderRadius:16,padding:"20px 22px",boxShadow:"0 4px 16px rgba(0,0,0,0.12)",color:"white",cursor:"pointer"}} onClick={()=>setActive(label==="Patients"?"patients":"appointments")}>
-                                        <div style={{display:"flex",justifyContent:"space-between"}}>
-                                            <div><div style={{fontSize:11,opacity:0.8,marginBottom:6}}>{label}</div><div style={{fontSize:28,fontWeight:800}}>{val}</div></div>
-                                            <div style={{fontSize:26,opacity:0.8}}>{icon}</div>
-                                        </div>
+                                    ["Today",     stats.today,           "📅","linear-gradient(135deg,#0d4f4f,#14b8a6)","appointments","Today's appointments"],
+                                    ["Pending",   stats.pending,         "⏳","linear-gradient(135deg,#d97706,#f59e0b)","appointments","Needs confirmation"],
+                                    ["Confirmed", stats.confirmed,       "✅","linear-gradient(135deg,#1d4ed8,#3b82f6)","appointments","Ready to see"],
+                                    ["Patients",  derivedPatients.length,"👥","linear-gradient(135deg,#7c3aed,#8b5cf6)","patients","Unique patients"],
+                                ].map(([label,val,icon,bg,target,sub])=>(
+                                    <div key={label}
+                                        onClick={()=>setActive(target)}
+                                        onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 12px 28px rgba(0,0,0,0.2)";}}
+                                        onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,0.12)";}}
+                                        style={{background:bg,borderRadius:18,padding:"20px 22px",boxShadow:"0 4px 16px rgba(0,0,0,0.12)",color:"white",cursor:"pointer",transition:"transform 0.2s,box-shadow 0.2s",position:"relative",overflow:"hidden"}}>
+                                        <div style={{position:"absolute",top:-10,right:-10,fontSize:56,opacity:0.12,userSelect:"none"}}>{icon}</div>
+                                        <div style={{fontSize:11,opacity:0.75,marginBottom:6,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase"}}>{label}</div>
+                                        <div style={{fontSize:32,fontWeight:900,lineHeight:1,marginBottom:4}}>{val}</div>
+                                        <div style={{fontSize:11,opacity:0.6}}>{sub} →</div>
                                     </div>
                                 ))}
                             </div>
@@ -1023,7 +1027,7 @@ export default function DoctorDashboard() {
                 }
                 @media(max-width:1100px) and (min-width:769px){.pt-grid{grid-template-columns:repeat(2,1fr);}}
                 @media(max-width:768px){
-                    .dr-sidebar{transform:translateX(-100%);transition:transform 0.25s ease;}
+                    .dr-sidebar{transform:translateX(-100%);}
                     .stat4{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
                     .pt-grid{display:grid;grid-template-columns:1fr;gap:12px;}
                     .sch-grid{grid-template-columns:1fr 1fr !important;}

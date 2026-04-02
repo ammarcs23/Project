@@ -4,8 +4,7 @@ import './ChatButton.css';
 
 // ── Groq AI Setup ────────────────────────────────────────
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// const GKEY     = process.env.REACT_APP_GROQ_KEY || "";
-const GKEY = "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";
+const GKEY     = process.env.REACT_APP_GROQ_KEY || "";
 const SYSTEM = `You are MediBot, a helpful AI assistant for MediCare+ Hospital.
 You help with:
 - General health questions and symptoms guidance
