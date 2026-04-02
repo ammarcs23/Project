@@ -459,3 +459,23 @@ FOREIGN KEY (appt_id) REFERENCES appointments(id) ON DELETE SET NULL;
 -- ── BLOCK 5: Verify ───────────────────────────────────────
 SHOW COLUMNS FROM appointments;
 SELECT 'appointments table ready!' as status;
+
+
+
+
+
+-- Run this in MySQL Workbench
+USE hospital_db;
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    appointment_id INT          NOT NULL,
+    sender_role    ENUM('doctor','patient') NOT NULL,
+    sender_name    VARCHAR(100) NOT NULL,
+    message        TEXT         NOT NULL,
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
+    INDEX idx_appt_chat (appointment_id, created_at)
+);
+
+SELECT 'chat_messages table created!' as status;

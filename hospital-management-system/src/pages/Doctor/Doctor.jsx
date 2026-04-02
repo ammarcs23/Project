@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-const API  = "http://localhost:5000/api/doctor";
-const ANTH = "https://api.anthropic.com/v1/messages";
+const API       = "http://localhost:5000/api/doctor";
+const GROQ_URL  = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_KEY  = "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";
 
 const api = async (url, method="GET", body=null, isForm=false) => {
     const token = localStorage.getItem("hospital_token_doctor");
@@ -14,7 +15,6 @@ const api = async (url, method="GET", body=null, isForm=false) => {
     }
     const res  = await fetch(`${API}${url}`, opts);
     const data = await res.json();
-    // Token expired or invalid — clear and redirect
     if (res.status === 401) {
         localStorage.removeItem("hospital_token_doctor");
         localStorage.removeItem("hospital_user_doctor");
@@ -24,13 +24,26 @@ const api = async (url, method="GET", body=null, isForm=false) => {
     return data;
 };
 
+// Groq AI helper — medical analysis
 const aiCall = async (system, messages, max_tokens=800) => {
-    const res = await fetch(ANTH,{
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens, system, messages })
-    });
-    const d = await res.json();
-    return d.content?.[0]?.text || "";
+    if (!GROQ_KEY) return "AI key not configured. Add REACT_APP_GROQ_KEY in .env";
+    const msgs = [
+        { role:"system", content: system },
+        ...messages.map(m=>({
+            role:    m.role==="assistant"||m.role==="model" ? "assistant" : "user",
+            content: m.content || m.text || ""
+        }))
+    ];
+    try {
+        const res = await fetch(GROQ_URL, {
+            method:"POST",
+            headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${GROQ_KEY}` },
+            body: JSON.stringify({ model:"llama-3.3-70b-versatile", messages:msgs, max_tokens, temperature:0.7 })
+        });
+        const d = await res.json();
+        if(d.error) return `AI Error: ${d.error.message}`;
+        return d.choices?.[0]?.message?.content || "No response.";
+    } catch { return "AI service unavailable."; }
 };
 
 /* ── Helpers ── */
@@ -81,50 +94,84 @@ const NAV  = [{id:"dashboard",icon:"⊞",label:"Dashboard"},{id:"schedule",icon:
 
 /* ══ ONLINE CONSULTATION MODAL ══ */
 function OnlineConsultModal({ appt, onClose, onSaveAI }) {
-    const [tab,      setTab]      = useState("ai");
-    const [chatRole, setChatRole] = useState("doctor");
-    const [drConvo,  setDrConvo]  = useState([{role:"doctor",text:`Hello ${appt.patient_name}! I'm reviewing your case. You mentioned: "${appt.problem}". How are you feeling today?`,time:""}]);
-    const [drInput,  setDrInput]  = useState("");
-    const [drLoad,   setDrLoad]   = useState(false);
-    const [aiText,   setAiText]   = useState(appt.ai_analysis||"");
-    const [aiRisk,   setAiRisk]   = useState(appt.ai_risk||"Low");
-    const [aiLoad,   setAiLoad]   = useState(false);
-    const drRef = useRef();
-    useEffect(()=>{ drRef.current?.scrollIntoView({behavior:"smooth"}); },[drConvo]);
+    const [tab,     setTab]     = useState("chat");
+    const [msgs,    setMsgs]    = useState([]);
+    const [input,   setInput]   = useState("");
+    const [sending, setSending] = useState(false);
+    const [aiText,  setAiText]  = useState(appt.ai_analysis||"");
+    const [aiRisk,  setAiRisk]  = useState(appt.ai_risk||"Low");
+    const [aiLoad,  setAiLoad]  = useState(false);
+    const chatRef   = useRef();
+    const pollRef   = useRef();
+    const lastIdRef = useRef(0);
 
-    const now = () => new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+    const drToken = localStorage.getItem("hospital_token_doctor");
+    const CHAT    = `http://localhost:5000/api/chat/${appt.id}`;
+
     const ptAv = appt.patient_avatar ? `http://localhost:5000${appt.patient_avatar}` : uiAv(appt.patient_name);
-    const drAv = uiAv("Dr","0d4f4f");
+    const drAv = uiAv(appt.doctor_name||"Dr","0d4f4f");
+    const fmtT = (ts) => new Date(ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
 
+    // Fetch messages from DB
+    const fetchMsgs = async () => {
+        try {
+            const res  = await fetch(CHAT, { headers:{ Authorization:`Bearer ${drToken}` }});
+            const data = await res.json();
+            if(data.success && data.messages) {
+                setMsgs(data.messages);
+                if(data.messages.length) lastIdRef.current = data.messages[data.messages.length-1].id;
+            }
+        } catch {}
+    };
+
+    // Load messages + start polling every 3 seconds
+    useEffect(()=>{
+        fetchMsgs();
+        pollRef.current = setInterval(fetchMsgs, 3000);
+        return ()=> clearInterval(pollRef.current);
+    },[appt.id]);
+
+    useEffect(()=>{ chatRef.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
+
+    // Doctor sends message to DB
     const sendMsg = async () => {
-        const msg=drInput.trim(); if(!msg) return;
-        setDrConvo(p=>[...p,{role:chatRole,text:msg,time:now()}]); setDrInput("");
-        // If doctor sends: AI replies as patient
-        if(chatRole==="doctor") {
-            setDrLoad(true);
-            try {
-                const hist=drConvo.map(m=>({role:m.role==="doctor"?"user":"assistant",content:m.text}));
-                const reply=await aiCall(
-                    `You are roleplaying as a patient named ${appt.patient_name}. Your problem: "${appt.problem}". Age: ${appt.age||"unknown"}. Reply naturally as the patient would — describe symptoms, ask questions. Max 2 sentences.`,
-                    [...hist,{role:"user",content:msg}], 300
-                );
-                setTimeout(()=>{ setDrConvo(p=>[...p,{role:"patient",text:reply,time:now()}]); setDrLoad(false); },600);
-            } catch { setDrConvo(p=>[...p,{role:"patient",text:"Sorry, I lost connection.",time:now()}]); setDrLoad(false); }
-        }
+        const msg = input.trim();
+        if(!msg || sending) return;
+        setSending(true);
+        setInput("");
+        try {
+            await fetch(CHAT, {
+                method:"POST",
+                headers:{ "Content-Type":"application/json", Authorization:`Bearer ${drToken}` },
+                body: JSON.stringify({ message: msg })
+            });
+            await fetchMsgs(); // refresh immediately
+        } catch {}
+        setSending(false);
     };
 
     const generateAI = async () => {
         setAiLoad(true);
         try {
-            const chat = drConvo.map(m=>`${m.role==="doctor"?"Doctor":"Patient"}: ${m.text}`).join("\n");
+            // ✅ FIXED
+            const chat = msgs.map(m=>`${m.sender_role==="doctor"?"Doctor":"Patient"}: ${m.message}`).join("\n");
             const text = await aiCall(
-                `You are a clinical AI. Write a structured medical assessment. Start with "Risk Level: Low/Medium/High". Then: Clinical Summary, Key Observations, Recommendations. Max 150 words. Professional tone.`,
-                [{role:"user",content:`Doctor: Dr (${appt.specialty||"General"})\nPatient: ${appt.patient_name}, Age: ${appt.age||"?"}, Blood: ${appt.blood_type||"?"}\nProblem: ${appt.problem}\nCondition: ${appt.condition||"None"}\n\nConsultation:\n${chat}`}]
+                `You are a clinical AI assistant. Based on the doctor-patient consultation below, write a structured medical assessment.
+Start with "Risk Level: Low / Medium / High".
+Then provide: Clinical Summary, Key Observations, Recommended Next Steps.
+Max 180 words. Professional medical tone.`,
+                [{role:"user",content:`Specialty: ${appt.specialty||"General Medicine"}
+Patient: ${appt.patient_name}, Age: ${appt.age||"?"}, Gender: ${appt.gender||"?"}, Blood: ${appt.blood_type||"?"}
+Chief Complaint: ${appt.problem}
+Known Condition: ${appt.condition||"None"}
+
+Consultation Transcript:
+${chat}`}]
             );
-            const m=text.match(/Risk Level:\s*(Low|Medium|High)/i);
+            const m = text.match(/Risk Level:\s*(Low|Medium|High)/i);
             if(m) setAiRisk(m[1]);
             setAiText(text);
-        } catch { setAiText("⚠️ Could not generate."); }
+        } catch { setAiText("⚠️ Could not generate analysis."); }
         setAiLoad(false);
     };
 
@@ -146,12 +193,8 @@ function OnlineConsultModal({ appt, onClose, onSaveAI }) {
                         </div>
                     </div>
                     <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                        <div style={{display:"flex",background:"rgba(255,255,255,0.15)",borderRadius:20,padding:3}}>
-                            {["doctor","patient"].map(r=>(
-                                <button key={r} onClick={()=>setChatRole(r)} style={{padding:"5px 12px",borderRadius:16,border:"none",cursor:"pointer",fontSize:11,fontWeight:700,background:chatRole===r?"white":"transparent",color:chatRole===r?"#0d4f4f":"rgba(255,255,255,0.8)"}}>
-                                    {r==="doctor"?"👨‍⚕️ Doctor":"👤 Patient"}
-                                </button>
-                            ))}
+                        <div style={{background:"rgba(255,255,255,0.15)",borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:700,color:"white"}}>
+                            👨‍⚕️ Doctor Mode
                         </div>
                         <button onClick={saveClose} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
                     </div>
@@ -166,37 +209,65 @@ function OnlineConsultModal({ appt, onClose, onSaveAI }) {
                     ))}
                 </div>
                 <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-                    {/* Chat Tab */}
+                    {/* Chat Tab — DB backed real-time polling */}
                     {tab==="chat"&&(
                         <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
                             <div style={{background:"#f0fdf4",padding:"8px 16px",borderBottom:"1px solid #dcfce7",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
                                 <div style={{width:8,height:8,borderRadius:"50%",background:"#16a34a",animation:"pulse 2s infinite"}}/>
-                                <span style={{fontSize:12,color:"#15803d",fontWeight:600}}>Online Consultation · {fmtDate(appt.date)} {fmtTime(appt.time_slot)}</span>
-                                <span style={{marginLeft:"auto",fontSize:11,color:"#94a3b8"}}>Sending as: <strong>{chatRole==="doctor"?"Doctor":"Patient (simulate)"}</strong></span>
+                                <span style={{fontSize:12,color:"#15803d",fontWeight:600}}>
+                                    Live Chat · {fmtDate(appt.date)} {fmtTime(appt.time_slot)}
+                                </span>
+                                <span style={{marginLeft:"auto",fontSize:11,color:"#064e3b",background:"#dcfce7",padding:"2px 10px",borderRadius:20,fontWeight:600}}>
+                                    👨‍⚕️ Doctor
+                                </span>
                             </div>
-                            <div style={{flex:1,overflowY:"auto",padding:"14px 16px",display:"flex",flexDirection:"column",gap:12}}>
-                                {drConvo.map((m,i)=>{
-                                    const isDoc=m.role==="doctor";
-                                    const isMe=(chatRole==="doctor"&&isDoc)||(chatRole==="patient"&&!isDoc);
+                            <div style={{background:"#fffbeb",padding:"7px 16px",borderBottom:"1px solid #fde68a",fontSize:12,color:"#92400e",flexShrink:0}}>
+                                <strong>Problem:</strong> {appt.problem}
+                                {appt.age&&<span> · Age {appt.age}</span>}
+                                {appt.blood_type&&<span> · 🩸 {appt.blood_type}</span>}
+                            </div>
+                            <div style={{flex:1,overflowY:"auto",padding:"14px 16px",display:"flex",flexDirection:"column",gap:12,background:"#f8fafc"}}>
+                                {msgs.length===0&&(
+                                    <div style={{textAlign:"center",color:"#94a3b8",fontSize:13,padding:"30px 0"}}>
+                                        No messages yet. Start the consultation!
+                                    </div>
+                                )}
+                                {msgs.map((m)=>{
+                                    const isMe = m.sender_role==="doctor";
                                     return (
-                                        <div key={i} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",alignItems:"flex-end",gap:8}}>
-                                            {!isMe&&<img src={isDoc?drAv:ptAv} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>}
+                                        <div key={m.id} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",alignItems:"flex-end",gap:8}}>
+                                            {!isMe&&<img src={ptAv} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0"}}/>}
                                             <div style={{maxWidth:"75%"}}>
-                                                {!isMe&&<div style={{fontSize:11,color:"#64748b",marginBottom:3,fontWeight:600}}>{isDoc?"Doctor":"Patient"}</div>}
-                                                <div style={{padding:"11px 15px",fontSize:13,lineHeight:1.6,borderRadius:isMe?"14px 4px 14px 14px":"4px 14px 14px 14px",background:isMe?"#0d4f4f":"white",color:isMe?"white":"#1e293b",boxShadow:isMe?"none":"0 1px 4px rgba(0,0,0,0.08)",border:isMe?"none":"1px solid #f1f5f9"}}>{m.text}</div>
-                                                <div style={{fontSize:10,color:"#94a3b8",marginTop:3,textAlign:isMe?"right":"left"}}>{m.time}</div>
+                                                {!isMe&&<div style={{fontSize:11,color:"#64748b",marginBottom:3,fontWeight:600}}>{m.sender_name}</div>}
+                                                <div style={{
+                                                    padding:"11px 15px",fontSize:13,lineHeight:1.6,
+                                                    borderRadius:isMe?"14px 4px 14px 14px":"4px 14px 14px 14px",
+                                                    background:isMe?"#0d4f4f":"white",
+                                                    color:isMe?"white":"#1e293b",
+                                                    boxShadow:isMe?"none":"0 1px 4px rgba(0,0,0,0.06)",
+                                                    border:isMe?"none":"1px solid #f1f5f9"
+                                                }}>{m.message}</div>
+                                                <div style={{fontSize:10,color:"#94a3b8",marginTop:3,textAlign:isMe?"right":"left"}}>{fmtT(m.created_at)}</div>
                                             </div>
-                                            {isMe&&<img src={isDoc?drAv:ptAv} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>}
+                                            {isMe&&<img src={drAv} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #0d4f4f"}}/>}
                                         </div>
                                     );
                                 })}
-                                {drLoad&&<div style={{display:"flex",alignItems:"flex-end",gap:8}}><img src={ptAv} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover"}}/><Dots/></div>}
-                                <div ref={drRef}/>
+                                <div ref={chatRef}/>
                             </div>
-                            <div style={{padding:"10px 14px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-                                <img src={chatRole==="doctor"?drAv:ptAv} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
-                                <input placeholder={chatRole==="doctor"?"Write to patient...":"Simulate patient response..."} value={drInput} onChange={e=>setDrInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMsg()} style={{flex:1,padding:"10px 14px",borderRadius:12,border:"1.5px solid #0d4f4f",fontSize:13,outline:"none",background:"#f8fafc"}}/>
-                                <button onClick={sendMsg} style={{background:"#0d4f4f",color:"white",border:"none",borderRadius:12,padding:"10px 16px",cursor:"pointer",fontWeight:700,fontSize:14}}>➤</button>
+                            <div style={{padding:"10px 14px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8,alignItems:"center",flexShrink:0,background:"white"}}>
+                                <img src={drAv} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #0d4f4f"}}/>
+                                <input
+                                    placeholder="Write your message to patient..."
+                                    value={input}
+                                    onChange={e=>setInput(e.target.value)}
+                                    onKeyDown={e=>e.key==="Enter"&&sendMsg()}
+                                    disabled={sending}
+                                    style={{flex:1,padding:"10px 14px",borderRadius:12,border:"1.5px solid #0d4f4f",fontSize:13,outline:"none",background:"#f8fafc"}}
+                                />
+                                <button onClick={sendMsg} disabled={!input.trim()||sending} style={{background:input.trim()&&!sending?"#0d4f4f":"#e2e8f0",color:input.trim()&&!sending?"white":"#94a3b8",border:"none",borderRadius:12,padding:"10px 16px",cursor:"pointer",fontWeight:700,fontSize:14,transition:"all 0.2s"}}>
+                                    {sending?"...":"➤"}
+                                </button>
                             </div>
                         </div>
                     )}
