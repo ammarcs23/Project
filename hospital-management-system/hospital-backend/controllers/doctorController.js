@@ -185,7 +185,7 @@ const updateProfile = async (req, res) => {
         const doc = await getDoctorByUser(req.user.id);
         if (!doc) return res.status(404).json({ success:false, message:'Doctor not found.' });
 
-        const { name, specialty, experience, fee, phone } = req.body;
+        const { name, specialty, experience, fee, phone, newPassword } = req.body;
         const avatar = req.file ? `/uploads/${req.file.filename}` : doc.avatar;
 
         await db.query(
@@ -193,6 +193,11 @@ const updateProfile = async (req, res) => {
             [specialty||doc.specialty, experience||doc.experience, fee||doc.fee, phone||doc.phone, avatar, doc.id]
         );
         if (name) await db.query(`UPDATE users SET name=? WHERE id=?`, [name, req.user.id]);
+        if (newPassword && newPassword.trim().length >= 6) {
+            const bcrypt = require('bcryptjs');
+            const hash   = await bcrypt.hash(newPassword.trim(), 10);
+            await db.query(`UPDATE users SET password=? WHERE id=?`, [hash, req.user.id]);
+        }
         res.json({ success:true, message:'Profile updated!' });
     } catch(err) {
         console.error(err);
@@ -250,7 +255,7 @@ const saveSchedule = async (req, res) => {
 };
 
 // ══════════════════════════════════════════════════════
-//  AVAILABLE SLOTS — for patient booking
+//  AVAILABLE SLOTS — for patient booking (public, any role)
 // ══════════════════════════════════════════════════════
 
 const getAvailableSlots = async (req, res) => {
@@ -276,6 +281,7 @@ const getAvailableSlots = async (req, res) => {
 
         const allSlots = generateSlots(sch.start_time, sch.end_time, sch.break_start, sch.break_end, sch.slot_duration);
 
+        // Get booked slots - handles both old and new column names
         let booked = [];
         try {
             const [rows] = await db.query(
@@ -285,6 +291,7 @@ const getAvailableSlots = async (req, res) => {
             );
             booked = rows;
         } catch(colErr) {
+            // If columns don't exist yet (old DB schema), return all slots as available
             console.log('appointments columns not found, returning all slots as available');
         }
         const bookedSet = new Set(booked.map(b => b.time_slot));
@@ -306,36 +313,21 @@ const getAppointments = async (req, res) => {
         const doc = await getDoctorByUser(req.user.id);
         if (!doc) return res.status(404).json({ success:false, message:'Doctor not found.' });
 
-        const { status } = req.query;
-
-        // ✅ FIX: p.id as patient_id explicitly select kiya
-        let sql = `SELECT a.*,
-                          p.id        AS patient_id,
-                          u.name      AS patient_name,
-                          p.age,
-                          p.gender,
-                          p.phone     AS patient_phone,
-                          p.condition_ AS patient_condition,
-                          p.blood_type,
-                          p.avatar    AS patient_avatar
+        const { status, date } = req.query;
+        let sql = `SELECT a.*, u.name as patient_name, p.age, p.gender,
+                          p.phone as patient_phone, p.condition_ as condition,
+                          p.blood_type, p.avatar as patient_avatar
                    FROM appointments a
-                   JOIN patients p ON a.patient_id = p.id
-                   JOIN users u    ON p.user_id = u.id
-                   WHERE a.doctor_id = ?`;
-
+                   JOIN patients p ON a.patient_id=p.id
+                   JOIN users u    ON p.user_id=u.id
+                   WHERE a.doctor_id=?`;
         const params = [doc.id];
-        if (status && status !== 'All') {
-            sql += ` AND a.status = ?`;
-            params.push(status);
-        }
+        if (status && status !== 'All') { sql += ` AND a.status=?`; params.push(status); }
         sql += ` ORDER BY a.created_at DESC`;
 
         const [appointments] = await db.query(sql, params);
         res.json({ success:true, appointments });
-    } catch(err) {
-        console.error(err);
-        res.status(500).json({ success:false, message:'Server error.' });
-    }
+    } catch(err) { res.status(500).json({ success:false, message:'Server error.' }); }
 };
 
 const updateAppointmentStatus = async (req, res) => {

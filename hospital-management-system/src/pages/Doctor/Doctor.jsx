@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 const API       = "http://localhost:5000/api/doctor";
 const GROQ_URL  = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_KEY  = "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";
+const GROQ_KEY  = process.env.REACT_APP_GROQ_KEY || "";
 
 const api = async (url, method="GET", body=null, isForm=false) => {
     const token = localStorage.getItem("hospital_token_doctor");
@@ -428,8 +428,8 @@ export default function DoctorDashboard() {
         ]);
         if(d.success) {
             setDoctor(d.doctor);
-            setProfForm({name:d.doctor.name,specialty:d.doctor.specialty,experience:d.doctor.experience||"",fee:d.doctor.fee||"",phone:d.doctor.phone||""});
-            setProfPrev(d.doctor.avatar?`http://localhost:5000${d.doctor.avatar}`:null);
+            setProfForm({name:d.doctor.name,specialty:d.doctor.specialty,experience:d.doctor.experience||"",fee:d.doctor.fee||"",phone:d.doctor.phone||"",newPassword:"",confirmPass:""});
+            setProfPrev(d.doctor.avatar?(d.doctor.avatar.startsWith("http")?d.doctor.avatar:`http://localhost:5000${d.doctor.avatar}`):null);
         }
         if(a.success) setAppointments(a.appointments);
         if(p.success) setPatients(p.patients);
@@ -453,13 +453,20 @@ export default function DoctorDashboard() {
     };
 
     const saveProfile = async () => {
+        if(profForm.newPassword && profForm.newPassword !== profForm.confirmPass) {
+            showToast("Passwords do not match.",false); return;
+        }
+        if(profForm.newPassword && profForm.newPassword.length < 6) {
+            showToast("Password must be at least 6 characters.",false); return;
+        }
         setLoading(true);
         const fd=new FormData();
-        Object.entries(profForm).forEach(([k,v])=>{ if(v!==null&&v!=="") fd.append(k,v); });
+        ["name","specialty","experience","fee","phone"].forEach(k=>{ if(profForm[k]!==null&&profForm[k]!=="") fd.append(k,profForm[k]); });
+        if(profForm.newPassword) fd.append("newPassword", profForm.newPassword);
         if(profImg) fd.append("avatar",profImg);
         const data=await api('/profile','PUT',fd,true);
         setLoading(false);
-        if(data.success) { showToast(data.message); loadAll(); }
+        if(data.success) { showToast(data.message); setProfForm(p=>({...p,newPassword:"",confirmPass:""})); loadAll(); }
         else showToast(data.message,false);
     };
 
@@ -556,7 +563,7 @@ export default function DoctorDashboard() {
         online:    appointments.filter(a=>a.visit_type==="online"&&(a.status==="Pending"||a.status==="Confirmed")).length,
     };
 
-    const drAv = doctor?.avatar ? `http://localhost:5000${doctor.avatar}` : uiAv(doctor?.name||"Dr","0d4f4f");
+    const drAv = doctor?.avatar?(doctor.avatar.startsWith("http")?doctor.avatar:`http://localhost:5000${doctor.avatar}`):uiAv(doctor?.name||"Dr","0d4f4f");
 
     return (
         <div style={{display:"flex",minHeight:"100vh",background:"#f0f7f6",fontFamily:"'DM Sans','Segoe UI',sans-serif"}}>
@@ -709,7 +716,7 @@ export default function DoctorDashboard() {
                                     ? <div style={{textAlign:"center",padding:"24px",color:"#94a3b8",fontSize:13}}>No appointments today. Enjoy the day! 🌿</div>
                                     : todayAppts.map(a=>(
                                         <div key={a.id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderRadius:12,background:"#f8fafc",marginBottom:8,border:`1px solid ${a.visit_type==="online"?"#bfdbfe":"#f1f5f9"}`}}>
-                                            <img src={a.patient_avatar?`http://localhost:5000${a.patient_avatar}`:uiAv(a.patient_name)} alt="" style={{width:42,height:42,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
+                                            <img src={a.patient_avatar?(a.patient_avatar.startsWith("http")?a.patient_avatar:`http://localhost:5000${a.patient_avatar}`):uiAv(a.patient_name)} alt="" style={{width:42,height:42,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
                                             <div style={{flex:1}}>
                                                 <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{a.patient_name}</div>
                                                 <div style={{fontSize:11,color:"#94a3b8"}}>{fmtTime(a.time_slot)} · {a.problem?.substring(0,40)}</div>
@@ -792,7 +799,7 @@ export default function DoctorDashboard() {
                                 {filtAppts.map(a=>(
                                     <div key={a.id} style={{background:"white",borderRadius:16,padding:"16px 20px",boxShadow:"0 1px 8px rgba(0,0,0,0.06)",border:`1px solid ${a.status==="Confirmed"?"#bfdbfe":a.status==="Pending"?"#fde68a":a.status==="Completed"?"#bbf7d0":"#fecaca"}`}}>
                                         <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-                                            <img src={a.patient_avatar?`http://localhost:5000${a.patient_avatar}`:uiAv(a.patient_name)} alt="" style={{width:48,height:48,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0"}}/>
+                                            <img src={a.patient_avatar?(a.patient_avatar.startsWith("http")?a.patient_avatar:`http://localhost:5000${a.patient_avatar}`):uiAv(a.patient_name)} alt="" style={{width:48,height:48,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0"}}/>
                                             <div style={{flex:1,minWidth:0}}>
                                                 <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:4}}>
                                                     <div style={{fontWeight:800,fontSize:14,color:"#0f172a"}}>{a.patient_name}</div>
@@ -947,6 +954,52 @@ export default function DoctorDashboard() {
                                             <div style={{fontSize:10,color:"#94a3b8",marginTop:2}}>Email cannot be changed</div>
                                         </div>
                                     </div>
+                                </div>
+                                {/* Password section */}
+                                <div style={{borderTop:"1px solid #f1f5f9",paddingTop:16,marginTop:4}}>
+                                    <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginBottom:12}}>🔒 Change Password <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>(leave blank to keep current)</span></div>
+                                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}} className="prof-grid">
+                                        {/* New Password */}
+                                        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                                            <label style={{fontSize:12,fontWeight:700,color:"#475569"}}>New Password</label>
+                                            <div style={{position:"relative"}}>
+                                                <input
+                                                    type={profForm._showPass?"text":"password"}
+                                                    value={profForm.newPassword||""}
+                                                    onChange={e=>setProfForm(p=>({...p,newPassword:e.target.value}))}
+                                                    placeholder="Min. 6 characters"
+                                                    style={{padding:"9px 38px 9px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc",color:"#1e293b",width:"100%",boxSizing:"border-box"}}
+                                                />
+                                                <button type="button" onClick={()=>setProfForm(p=>({...p,_showPass:!p._showPass}))}
+                                                    style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#94a3b8",padding:0}}>
+                                                    {profForm._showPass?"🙈":"👁️"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {/* Confirm Password */}
+                                        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                                            <label style={{fontSize:12,fontWeight:700,color:"#475569"}}>Confirm Password</label>
+                                            <div style={{position:"relative"}}>
+                                                <input
+                                                    type={profForm._showConf?"text":"password"}
+                                                    value={profForm.confirmPass||""}
+                                                    onChange={e=>setProfForm(p=>({...p,confirmPass:e.target.value}))}
+                                                    placeholder="Repeat password"
+                                                    style={{padding:"9px 38px 9px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc",color:"#1e293b",width:"100%",boxSizing:"border-box"}}
+                                                />
+                                                <button type="button" onClick={()=>setProfForm(p=>({...p,_showConf:!p._showConf}))}
+                                                    style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#94a3b8",padding:0}}>
+                                                    {profForm._showConf?"🙈":"👁️"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {profForm.newPassword&&profForm.confirmPass&&profForm.newPassword!==profForm.confirmPass&&(
+                                        <div style={{fontSize:12,color:"#ef4444",marginTop:6}}>⚠️ Passwords do not match</div>
+                                    )}
+                                    {profForm.newPassword&&profForm.confirmPass&&profForm.newPassword===profForm.confirmPass&&profForm.newPassword.length>=6&&(
+                                        <div style={{fontSize:12,color:"#10b981",marginTop:6}}>✓ Passwords match</div>
+                                    )}
                                 </div>
                                 <button onClick={saveProfile} disabled={loading} style={{marginTop:18,width:"100%",padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",color:"white",fontWeight:700,fontSize:14,cursor:"pointer"}}>
                                     {loading?"Saving...":"💾 Save Profile"}

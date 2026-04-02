@@ -75,12 +75,18 @@ const getMyProfile = async (req, res) => {
 const updateMyProfile = async (req, res) => {
     const conn = await db.getConnection();
     try {
-        const { name, age, gender, blood_type, phone, address, condition_ } = req.body;
+        const { name, age, gender, blood_type, phone, address, condition_, newPassword } = req.body;
         const [[pt]] = await conn.query('SELECT id, avatar FROM patients WHERE user_id=?', [req.user.id]);
         if (!pt) return res.status(404).json({success:false,message:'Patient not found.'});
         const avatar = req.file ? `/uploads/${req.file.filename}` : pt.avatar;
         await conn.beginTransaction();
         if (name) await conn.query('UPDATE users SET name=? WHERE id=?', [name, req.user.id]);
+        // Password change
+        if (newPassword && newPassword.trim().length >= 6) {
+            const bcrypt = require('bcryptjs');
+            const hash   = await bcrypt.hash(newPassword.trim(), 10);
+            await conn.query('UPDATE users SET password=? WHERE id=?', [hash, req.user.id]);
+        }
         await conn.query(
             `UPDATE patients SET age=?,gender=?,blood_type=?,phone=?,address=?,condition_=?,avatar=? WHERE id=?`,
             [age||null,gender||null,blood_type||null,phone||null,address||null,condition_||null,avatar,pt.id]

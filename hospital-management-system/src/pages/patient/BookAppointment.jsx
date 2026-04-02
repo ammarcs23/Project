@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 const API   = "http://localhost:5000/api";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_KEY = "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";
+const GROQ_KEY = process.env.REACT_APP_GROQ_KEY || "";
 
 const getToken = () => localStorage.getItem("hospital_token_patient");
 
@@ -78,6 +78,7 @@ function ConsultationModal({appt, onClose, onSaveAnalysis}) {
     const [aiMsgs,   setAiMsgs]   = useState([]);
     const [aiInput,  setAiInput]  = useState("");
     const [aiLoad,   setAiLoad]   = useState(false);
+    const [autoRan,  setAutoRan]  = useState(false);
     const [chatMsgs, setChatMsgs] = useState([]);
     const [drInput,  setDrInput]  = useState("");
     const [drSending,setDrSending]= useState(false);
@@ -91,6 +92,33 @@ function ConsultationModal({appt, onClose, onSaveAnalysis}) {
     const fmtT = (ts)=>new Date(ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
 
     useEffect(()=>{ aiRef.current?.scrollIntoView({behavior:"smooth"}); },[aiMsgs,aiLoad]);
+
+    // Auto-run AI analysis on modal open
+    useEffect(()=>{
+        if(autoRan) return;
+        setAutoRan(true);
+        const autoAnalyze = async ()=>{
+            setAiLoad(true);
+            try {
+                const reply = await claude(
+                    `You are a medical AI assistant. A patient has booked an appointment with ${appt.doctor_name} (${appt.specialty}).
+Analyze their problem and provide:
+1. Brief symptom assessment (2-3 sentences)
+2. What to expect at the appointment
+3. 2-3 important questions to ask the doctor
+Keep it simple, clear, and reassuring. Do NOT diagnose or prescribe.`,
+                    [{role:"user", content:`Patient problem: "${appt.problem}"
+Age: ${appt.age||"not specified"}
+Appointment with: ${appt.doctor_name} (${appt.specialty})`}]
+                );
+                setAiMsgs([{role:"ai", text:reply, time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}]);
+            } catch {
+                setAiMsgs([{role:"ai", text:"⚠️ Could not generate analysis. You can still ask questions below.", time:""}]);
+            }
+            setAiLoad(false);
+        };
+        autoAnalyze();
+    },[]);
     useEffect(()=>{ drRef.current?.scrollIntoView({behavior:"smooth"}); },[chatMsgs]);
 
     // Fetch chat messages from DB
@@ -156,7 +184,7 @@ NEVER diagnose or prescribe. Keep responses clear and reassuring. Max 3 sentence
         setSummLoad(true);
         try {
             const aiTxt = aiMsgs.map(m=>`${m.role==="user"?"Patient":"AI"}: ${m.text}`).join("\n");
-           // ✅ FIXED
+            // ✅ FIXED
             const drTxt = chatMsgs.map(m=>`${m.sender_role==="doctor"?"Doctor":"Patient"}: ${m.message}`).join("\n");
             const text  = await claude(
                 `You are a clinical AI. Write a structured pre-appointment summary based on patient-AI chat and doctor-patient conversation.
@@ -233,14 +261,13 @@ ${drTxt}`}]
                                 💡 Describe your symptoms to AI. Use this to prepare before talking to your doctor.
                             </div>
                             <div style={{flex:1,overflowY:"auto",padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
-                                {/* Welcome message */}
+                                {/* Welcome + auto-analysis */}
                                 <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
                                     <div style={{fontSize:24,flexShrink:0}}>🤖</div>
                                     <div style={{background:"#f1f5f9",padding:"12px 16px",borderRadius:"4px 14px 14px 14px",fontSize:13,color:"#0f172a",maxWidth:"85%",lineHeight:1.6}}>
                                         👋 Hi! I'm your AI health assistant.<br/>
-                                        I'll help you understand your symptoms and prepare for your appointment with <strong>{appt.doctor_name}</strong>.<br/><br/>
-                                        <strong>Your concern:</strong> {appt.problem}<br/><br/>
-                                        Tell me more about how you're feeling — when it started, severity, any other symptoms?
+                                        Analyzing your concern: <strong>"{appt.problem}"</strong>
+                                        {aiLoad&&!aiMsgs.length&&<span><br/>🔄 Generating analysis...</span>}
                                     </div>
                                 </div>
 

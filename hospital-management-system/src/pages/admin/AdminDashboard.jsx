@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useHomepage } from "../../context/HomepageContext";
 
@@ -30,13 +30,23 @@ const Badge = ({ s }) => {
     const [bg,tc] = m[s]||["#f1f5f9","#64748b"];
     return <span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:bg,color:tc}}>{s}</span>;
 };
-const Inp = ({label,value,onChange,type="text",placeholder="",required=false,hint=""}) => (
-    <div style={{display:"flex",flexDirection:"column",gap:4}}>
-        <label style={{fontSize:12,fontWeight:700,color:"#475569"}}>{label}{required&&<span style={{color:"#ef4444"}}>*</span>}{hint&&<span style={{fontWeight:400,color:"#94a3b8",fontSize:11}}> {hint}</span>}</label>
-        <input type={type} value={value||""} onChange={onChange} placeholder={placeholder}
-            style={{padding:"9px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc",color:"#1e293b",width:"100%",boxSizing:"border-box"}}/>
-    </div>
-);
+const Inp = ({label,value,onChange,type="text",placeholder="",required=false,hint=""}) => {
+    const [show,setShow] = React.useState(false);
+    const isPass = type==="password";
+    return (
+        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            <label style={{fontSize:12,fontWeight:700,color:"#475569"}}>{label}{required&&<span style={{color:"#ef4444"}}>*</span>}{hint&&<span style={{fontWeight:400,color:"#94a3b8",fontSize:11}}> {hint}</span>}</label>
+            <div style={{position:"relative"}}>
+                <input type={isPass?(show?"text":"password"):type} value={value||""} onChange={onChange} placeholder={placeholder}
+                    style={{padding:isPass?"9px 38px 9px 12px":"9px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc",color:"#1e293b",width:"100%",boxSizing:"border-box"}}/>
+                {isPass&&<button type="button" onClick={()=>setShow(s=>!s)}
+                    style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#94a3b8",padding:0}}>
+                    {show?"🙈":"👁️"}
+                </button>}
+            </div>
+        </div>
+    );
+};
 const Sel = ({label,value,onChange,options}) => (
     <div style={{display:"flex",flexDirection:"column",gap:4}}>
         <label style={{fontSize:12,fontWeight:700,color:"#475569"}}>{label}</label>
@@ -183,7 +193,7 @@ export default function AdminDashboard() {
     };
     const openEditDr = (d) => {
         setDrForm({id:d.id,name:d.name,email:d.email,password:"",specialty:d.specialty,experience:d.experience||"",fee:d.fee||"",phone:d.phone||"",status:d.status});
-        setDrImg(null); setDrPrev(d.avatar||null); setDrModal("edit");
+        setDrImg(null); setDrPrev(d.avatar?(d.avatar.startsWith('http')?d.avatar:`http://localhost:5000${d.avatar}`):null); setDrModal("edit");
     };
     const saveDr = async () => {
         if (!drForm.name||!drForm.email||(drModal==="add"&&!drForm.password)||!drForm.specialty) {
@@ -210,7 +220,7 @@ export default function AdminDashboard() {
     /* ── Patient ── */
     const openEditPt = (p) => {
         setPtForm({id:p.id,name:p.name,email:p.email,age:p.age||"",gender:p.gender||"Male",blood_type:p.blood_type||"O+",phone:p.phone||"",address:p.address||"",condition_:p.condition_||""});
-        setPtImg(null); setPtPrev(p.avatar||null); setPtModal(true);
+        setPtImg(null); setPtPrev(p.avatar?(p.avatar.startsWith('http')?p.avatar:`http://localhost:5000${p.avatar}`):null); setPtModal(true);
     };
     const savePt = async () => {
         setLoading(true);
@@ -635,7 +645,7 @@ export default function AdminDashboard() {
                                 {filtDrs.map(d=>(
                                     <div key={d.id} style={{background:"white",borderRadius:16,padding:20,boxShadow:"0 1px 8px rgba(0,0,0,0.06)",display:"flex",flexDirection:"column",gap:12}}>
                                         <div style={{display:"flex",alignItems:"center",gap:12}}>
-                                            <img src={d.avatar||`https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=6366f1&color=fff`} alt={d.name} style={{width:52,height:52,borderRadius:"50%",objectFit:"cover",border:"2px solid #e2e8f0",flexShrink:0}}/>
+                                            <img src={d.avatar?(d.avatar.startsWith("http")?d.avatar:`http://localhost:5000${d.avatar}`):`https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=6366f1&color=fff`} alt={d.name} style={{width:52,height:52,borderRadius:"50%",objectFit:"cover",border:"2px solid #e2e8f0",flexShrink:0}}/>
                                             <div style={{flex:1,minWidth:0}}>
                                                 <div style={{fontWeight:800,fontSize:14,color:"#0f172a",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.name}</div>
                                                 <div style={{fontSize:12,color:"#64748b"}}>{d.specialty}</div>
@@ -682,7 +692,7 @@ export default function AdminDashboard() {
                                     ? <div style={{padding:40,textAlign:"center",color:"#94a3b8"}}>No patients found.</div>
                                     : filtPts.map((p,i)=>(
                                         <div key={p.id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 20px",borderBottom:i<filtPts.length-1?"1px solid #f1f5f9":"none"}}>
-                                            <img src={p.avatar||`https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=14b8a6&color=fff`} alt={p.name} style={{width:40,height:40,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
+                                            <img src={p.avatar?(p.avatar.startsWith("http")?p.avatar:`http://localhost:5000${p.avatar}`):`https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=14b8a6&color=fff`} alt={p.name} style={{width:40,height:40,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
                                             <div style={{flex:1,minWidth:0}}>
                                                 <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{p.name}</div>
                                                 <div style={{fontSize:11,color:"#94a3b8",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.email} · Age {p.age||"N/A"} · {p.condition_||"No condition listed"}</div>

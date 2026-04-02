@@ -70,6 +70,40 @@ const Toast = ({msg, ok}) => (
 /* ══════════════════════════════════════════════
    EDIT PROFILE MODAL
 ══════════════════════════════════════════════ */
+// ── Reusable field components — defined OUTSIDE any modal/component ──
+const PInp = ({label,value,onChange,type="text",placeholder=""}) => (
+    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+        <label style={{fontSize:12,fontWeight:700,color:"#475569"}}>{label}</label>
+        <input type={type} value={value||""} placeholder={placeholder} onChange={onChange}
+            style={{padding:"9px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc",color:"#1e293b",width:"100%",boxSizing:"border-box"}}/>
+    </div>
+);
+const PSel = ({label,value,onChange,options}) => (
+    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+        <label style={{fontSize:12,fontWeight:700,color:"#475569"}}>{label}</label>
+        <select value={value||""} onChange={onChange}
+            style={{padding:"9px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc",color:"#1e293b",width:"100%"}}>
+            {options.map(o=><option key={o}>{o}</option>)}
+        </select>
+    </div>
+);
+const PPass = ({label,value,onChange,placeholder=""}) => {
+    const [show,setShow] = useState(false);
+    return (
+        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            <label style={{fontSize:12,fontWeight:700,color:"#475569"}}>{label}</label>
+            <div style={{position:"relative"}}>
+                <input type={show?"text":"password"} value={value||""} placeholder={placeholder} onChange={onChange}
+                    style={{padding:"9px 38px 9px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc",color:"#1e293b",width:"100%",boxSizing:"border-box"}}/>
+                <button type="button" onClick={()=>setShow(s=>!s)}
+                    style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#94a3b8",padding:0}}>
+                    {show?"🙈":"👁️"}
+                </button>
+            </div>
+        </div>
+    );
+};
+
 function EditProfileModal({ patient, onClose, onSave }) {
     const [form, setForm] = useState({
         name:       patient.name||"",
@@ -79,38 +113,31 @@ function EditProfileModal({ patient, onClose, onSave }) {
         phone:      patient.phone||"",
         address:    patient.address||"",
         condition_: patient.condition_||"",
+        newPassword:"",
+        confirmPass:"",
     });
     const [img,  setImg]  = useState(null);
-    const [prev, setPrev] = useState(patient.avatar||null);
+    const [prev, setPrev] = useState(patient.avatar ? `http://localhost:5000${patient.avatar}` : null);
     const [loading, setLoading] = useState(false);
+    const [passErr, setPassErr] = useState("");
     const ref = useRef();
+    const upd = k => e => setForm(p=>({...p,[k]:e.target.value}));
 
     const save = async () => {
-        setLoading(true);
+        if(form.newPassword && form.newPassword !== form.confirmPass) {
+            setPassErr("Passwords do not match."); return;
+        }
+        if(form.newPassword && form.newPassword.length < 6) {
+            setPassErr("Password must be at least 6 characters."); return;
+        }
+        setPassErr(""); setLoading(true);
         const fd = new FormData();
-        Object.entries(form).forEach(([k,v]) => fd.append(k, v||""));
+        ["name","age","gender","blood_type","phone","address","condition_"].forEach(k=>fd.append(k,form[k]||""));
+        if(form.newPassword) fd.append("newPassword", form.newPassword);
         if (img) fd.append("avatar", img);
         await onSave(fd);
         setLoading(false);
     };
-
-    const Inp = ({label, k, type="text", placeholder=""}) => (
-        <div style={{display:"flex",flexDirection:"column",gap:4}}>
-            <label style={{fontSize:12,fontWeight:700,color:"#475569"}}>{label}</label>
-            <input type={type} value={form[k]||""} placeholder={placeholder}
-                onChange={e=>setForm(p=>({...p,[k]:e.target.value}))}
-                style={{padding:"9px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc",color:"#1e293b",width:"100%",boxSizing:"border-box"}}/>
-        </div>
-    );
-    const Sel = ({label, k, options}) => (
-        <div style={{display:"flex",flexDirection:"column",gap:4}}>
-            <label style={{fontSize:12,fontWeight:700,color:"#475569"}}>{label}</label>
-            <select value={form[k]||""} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))}
-                style={{padding:"9px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc",color:"#1e293b",width:"100%"}}>
-                {options.map(o=><option key={o}>{o}</option>)}
-            </select>
-        </div>
-    );
 
     return (
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
@@ -130,14 +157,23 @@ function EditProfileModal({ patient, onClose, onSave }) {
                         <div style={{fontSize:12,color:"#64748b"}}>Click camera icon to change photo</div>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                        <Inp label="Full Name" k="name" placeholder="Your name"/>
-                        <Inp label="Age" k="age" type="number" placeholder="25"/>
-                        <Sel label="Gender" k="gender" options={["Male","Female","Other"]}/>
-                        <Sel label="Blood Type" k="blood_type" options={["A+","A-","B+","B-","AB+","AB-","O+","O-"]}/>
-                        <Inp label="Phone" k="phone" placeholder="+92-300-0000000"/>
-                        <Inp label="Condition" k="condition_" placeholder="e.g. Diabetes..."/>
+                        <PInp label="Full Name"  value={form.name}       onChange={upd("name")}       placeholder="Your name"/>
+                        <PInp label="Age"        value={form.age}        onChange={upd("age")}        type="number" placeholder="25"/>
+                        <PSel label="Gender"     value={form.gender}     onChange={upd("gender")}     options={["Male","Female","Other"]}/>
+                        <PSel label="Blood Type" value={form.blood_type} onChange={upd("blood_type")} options={["A+","A-","B+","B-","AB+","AB-","O+","O-"]}/>
+                        <PInp label="Phone"      value={form.phone}      onChange={upd("phone")}      placeholder="+92-300-0000000"/>
+                        <PInp label="Condition"  value={form.condition_} onChange={upd("condition_")} placeholder="e.g. Diabetes..."/>
                     </div>
-                    <Inp label="Address" k="address" placeholder="123 Street, City"/>
+                    <PInp label="Address" value={form.address} onChange={upd("address")} placeholder="123 Street, City"/>
+                    <div style={{borderTop:"1px solid #f1f5f9",paddingTop:14}}>
+                        <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginBottom:10}}>🔒 Change Password <span style={{fontSize:11,color:"#94a3b8",fontWeight:400}}>(leave blank to keep current)</span></div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                            <PPass label="New Password"     value={form.newPassword} onChange={upd("newPassword")} placeholder="Min. 6 characters"/>
+                            <PPass label="Confirm Password" value={form.confirmPass} onChange={upd("confirmPass")} placeholder="Repeat password"/>
+                        </div>
+                        {passErr&&<div style={{fontSize:12,color:"#ef4444",marginTop:6}}>⚠️ {passErr}</div>}
+                        {form.newPassword&&form.confirmPass&&form.newPassword===form.confirmPass&&<div style={{fontSize:12,color:"#10b981",marginTop:6}}>✓ Passwords match</div>}
+                    </div>
                     <div style={{display:"flex",gap:10,marginTop:4}}>
                         <button onClick={onClose} style={{flex:1,padding:"11px",borderRadius:10,border:"2px solid #e2e8f0",background:"white",fontWeight:700,fontSize:13,cursor:"pointer",color:"#64748b"}}>Cancel</button>
                         <button onClick={save} disabled={loading} style={{flex:2,padding:"11px",borderRadius:10,border:"none",background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",fontWeight:700,fontSize:13,cursor:"pointer",color:"white"}}>
@@ -232,7 +268,7 @@ export default function PatientModule() {
 
                 {/* Patient card */}
                 <div style={{margin:"12px",background:"rgba(255,255,255,0.1)",borderRadius:12,padding:"12px",textAlign:"center"}}>
-                    <img src={patient?.avatar||avatar(patient?.name||user.name)} alt="patient"
+                    <img src={patient?.avatar?(patient.avatar.startsWith("http")?patient.avatar:`http://localhost:5000${patient.avatar}`):avatar(patient?.name||user.name)} alt="patient"
                         style={{width:50,height:50,borderRadius:"50%",objectFit:"cover",border:"2px solid rgba(255,255,255,0.4)",marginBottom:6}}/>
                     <div style={{color:"white",fontWeight:700,fontSize:13,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{patient?.name||user.name}</div>
                     <div style={{color:"rgba(255,255,255,0.5)",fontSize:11,marginTop:2}}>{patient?.blood_type||"Patient"}</div>
@@ -276,7 +312,7 @@ export default function PatientModule() {
                         <button onClick={()=>navigate("/book-appointment")} style={{background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",color:"white",border:"none",borderRadius:10,padding:"8px 16px",fontWeight:700,fontSize:12,cursor:"pointer"}}>
                             + Book Appointment
                         </button>
-                        <img src={patient?.avatar||avatar(patient?.name||user.name)} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",border:"2px solid #14b8a6"}}/>
+                        <img src={patient?.avatar?(patient.avatar.startsWith("http")?patient.avatar:`http://localhost:5000${patient.avatar}`):avatar(patient?.name||user.name)} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",border:"2px solid #14b8a6"}}/>
                     </div>
                 </div>
 
@@ -308,7 +344,7 @@ export default function PatientModule() {
                                 {/* Profile Card */}
                                 <div style={{background:"white",borderRadius:16,padding:22,boxShadow:"0 1px 8px rgba(0,0,0,0.06)"}}>
                                     <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
-                                        <img src={patient?.avatar||avatar(patient?.name||user.name)} alt="" style={{width:64,height:64,borderRadius:14,objectFit:"cover",border:"2px solid #ccfbf1",flexShrink:0}}/>
+                                        <img src={patient?.avatar?(patient.avatar.startsWith("http")?patient.avatar:`http://localhost:5000${patient.avatar}`):avatar(patient?.name||user.name)} alt="" style={{width:64,height:64,borderRadius:14,objectFit:"cover",border:"2px solid #ccfbf1",flexShrink:0}}/>
                                         <div>
                                             <div style={{fontWeight:800,fontSize:16,color:"#0f172a"}}>{patient?.name||user.name}</div>
                                             <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{patient?.email||user.email}</div>
@@ -341,7 +377,7 @@ export default function PatientModule() {
                                           </div>
                                         : upcoming.slice(0,3).map((a,i)=>(
                                             <div key={a.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:i<Math.min(upcoming.length,3)-1?"1px solid #f1f5f9":"none"}}>
-                                                <img src={a.doctor_avatar||avatar(a.doctor_name,"6366f1")} alt="" style={{width:38,height:38,borderRadius:10,objectFit:"cover",flexShrink:0,border:"1px solid #e2e8f0"}}/>
+                                                <img src={a.doctor_avatar?(a.doctor_avatar.startsWith("http")?a.doctor_avatar:`http://localhost:5000${a.doctor_avatar}`):avatar(a.doctor_name,"6366f1")} alt="" style={{width:38,height:38,borderRadius:10,objectFit:"cover",flexShrink:0,border:"1px solid #e2e8f0"}}/>
                                                 <div style={{flex:1,minWidth:0}}>
                                                     <div style={{fontWeight:700,fontSize:13,color:"#0f172a",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{a.doctor_name}</div>
                                                     <div style={{fontSize:11,color:"#94a3b8"}}>{fmtDate(a.date)} · {fmtTime(a.time_slot)}</div>
@@ -385,7 +421,7 @@ export default function PatientModule() {
                                             {/* Row */}
                                             <div onClick={()=>setExpandedId(expandedId===a.id?null:a.id)}
                                                 style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",cursor:"pointer"}}>
-                                                <img src={a.doctor_avatar||avatar(a.doctor_name,"6366f1")} alt="" style={{width:46,height:46,borderRadius:12,objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0"}}/>
+                                                <img src={a.doctor_avatar?(a.doctor_avatar.startsWith("http")?a.doctor_avatar:`http://localhost:5000${a.doctor_avatar}`):avatar(a.doctor_name,"6366f1")} alt="" style={{width:46,height:46,borderRadius:12,objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0"}}/>
                                                 <div style={{flex:1,minWidth:0}}>
                                                     <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{a.doctor_name}</div>
                                                     <div style={{fontSize:12,color:"#64748b"}}>{a.specialty} · {fmtDate(a.date)} · {fmtTime(a.time_slot)}</div>
@@ -462,7 +498,7 @@ export default function PatientModule() {
                             </div>
                             <div style={{background:"white",borderRadius:20,padding:24,boxShadow:"0 1px 8px rgba(0,0,0,0.06)"}}>
                                 <div style={{display:"flex",alignItems:"center",gap:20,marginBottom:24,padding:18,background:"linear-gradient(120deg,#f0fdf9,#ccfbf1)",borderRadius:16}}>
-                                    <img src={patient?.avatar||avatar(patient?.name||user.name)} alt="" style={{width:80,height:80,borderRadius:"50%",objectFit:"cover",border:"4px solid #14b8a6",flexShrink:0}}/>
+                                    <img src={patient?.avatar?(patient.avatar.startsWith("http")?patient.avatar:`http://localhost:5000${patient.avatar}`):avatar(patient?.name||user.name)} alt="" style={{width:80,height:80,borderRadius:"50%",objectFit:"cover",border:"4px solid #14b8a6",flexShrink:0}}/>
                                     <div>
                                         <div style={{fontWeight:800,fontSize:18,color:"#0d4f4f"}}>{patient?.name||user.name}</div>
                                         <div style={{fontSize:13,color:"#0d9488",marginTop:2}}>{patient?.email||user.email}</div>
