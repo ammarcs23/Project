@@ -237,7 +237,22 @@ export default function Signup1() {
               <form className="sl-form" onSubmit={handleSubmit}>
                 {mode==="register"&&<div className="sl-field"><label>Full Name</label><input type="text" placeholder="John Smith" value={form.name} onChange={set("name")}/></div>}
                 <div className="sl-field"><label>Email Address</label><input type="email" placeholder="you@example.com" value={form.email} onChange={set("email")}/></div>
-                <div className="sl-field"><label>Password</label><input type="password" placeholder="••••••••" value={form.password} onChange={set("password")}/></div>
+                <div className="sl-field">
+  <label>Password</label>
+  <div style={{position:"relative"}}>
+    <input 
+      type={form._showPass?"text":"password"} 
+      placeholder="••••••••" 
+      value={form.password} 
+      onChange={set("password")}
+      style={{paddingRight:44}}
+    />
+    <button type="button" onClick={()=>setForm(p=>({...p,_showPass:!p._showPass}))}
+      style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:18,color:"rgba(255,255,255,0.4)",padding:0,lineHeight:1}}>
+      {form._showPass?"🙈":"👁️"}
+    </button>
+  </div>
+</div>
                 {role==="Doctor"&&mode==="login"&&(
                   <div className="sl-field"><label>Doctor ID <span className="sl-hint">(assigned by admin)</span></label><input type="text" placeholder="D001" value={form.doctorId} onChange={set("doctorId")}/></div>
                 )}
