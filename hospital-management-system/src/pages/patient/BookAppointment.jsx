@@ -184,8 +184,11 @@ NEVER diagnose or prescribe. Keep responses clear and reassuring. Max 3 sentence
         setSummLoad(true);
         try {
             const aiTxt = aiMsgs.map(m=>`${m.role==="user"?"Patient":"AI"}: ${m.text}`).join("\n");
-            // ✅ FIXED
-            const drTxt = chatMsgs.map(m=>`${m.sender_role==="doctor"?"Doctor":"Patient"}: ${m.message}`).join("\n");
+            // ✅ FIXED - Check both sender_role and sender_type for DB compatibility
+            const drTxt = chatMsgs.map(m=>{
+                const role = m.sender_role || m.sender_type || "";
+                return `${role==="doctor"?"Doctor":"Patient"}: ${m.message}`;
+            }).join("\n");
             const text  = await claude(
                 `You are a clinical AI. Write a structured pre-appointment summary based on patient-AI chat and doctor-patient conversation.
 Format:
@@ -324,7 +327,9 @@ ${drTxt}`}]
                                     </div>
                                 )}
                                 {chatMsgs.map((m)=>{
-                                    const isMe = m.sender_role==="patient";
+                                    // ✅ FIXED - Check both sender_role and sender_type
+                                    const role = m.sender_role || m.sender_type || "";
+                                    const isMe = role==="patient";
                                     return(
                                         <div key={m.id} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",alignItems:"flex-end",gap:8}}>
                                             {!isMe&&<img src={drAv} alt="" style={{width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #0d4f4f"}}/>}
@@ -807,11 +812,11 @@ export default function BookAppointment() {
                 }
                 @media(max-width:768px){
                     .spec-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-                    .dr-pick-grid{display:flex;flex-direction:column;gap:10px;}
-                    .form-grid{display:flex;flex-direction:column;gap:14px;}
+                    .dr-pick-grid{display:flex;flexDirection:column;gap:10px;}
+                    .form-grid{display:flex;flexDirection:column;gap:14px;}
                     .slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
                     .confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-                    .expand-grid{display:flex;flex-direction:column;gap:12px;}
+                    .expand-grid{display:flex;flexDirection:column;gap:12px;}
                     .step-label{display:none !important;}
                     .full-w{width:100%;}
                 }

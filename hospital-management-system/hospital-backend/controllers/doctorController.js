@@ -313,21 +313,32 @@ const getAppointments = async (req, res) => {
         const doc = await getDoctorByUser(req.user.id);
         if (!doc) return res.status(404).json({ success:false, message:'Doctor not found.' });
 
-        const { status, date } = req.query;
-        let sql = `SELECT a.*, u.name as patient_name, p.age, p.gender,
-                          p.phone as patient_phone, p.condition_ as condition,
-                          p.blood_type, p.avatar as patient_avatar
+        const { status } = req.query;
+        let sql = `SELECT a.*, 
+                          COALESCE(u.name, 'Unknown Patient') as patient_name, 
+                          p.age, 
+                          p.gender,
+                          p.phone as patient_phone, 
+                          p.condition_ as patient_condition,
+                          p.blood_type, 
+                          p.avatar as patient_avatar
                    FROM appointments a
-                   JOIN patients p ON a.patient_id=p.id
-                   JOIN users u    ON p.user_id=u.id
-                   WHERE a.doctor_id=?`;
+                   LEFT JOIN patients p ON a.patient_id = p.id
+                   LEFT JOIN users u    ON p.user_id = u.id
+                   WHERE a.doctor_id = ?`;
         const params = [doc.id];
-        if (status && status !== 'All') { sql += ` AND a.status=?`; params.push(status); }
+        if (status && status !== 'All') { 
+            sql += ` AND a.status = ?`; 
+            params.push(status); 
+        }
         sql += ` ORDER BY a.created_at DESC`;
 
         const [appointments] = await db.query(sql, params);
         res.json({ success:true, appointments });
-    } catch(err) { res.status(500).json({ success:false, message:'Server error.' }); }
+    } catch(err) { 
+        console.error('getAppointments error:', err.message);
+        res.status(500).json({ success:false, message:'Server error.' }); 
+    }
 };
 
 const updateAppointmentStatus = async (req, res) => {
