@@ -108,7 +108,7 @@ const DelConfirm = ({name,onCancel,onConfirm}) => (
 const SPECIALTIES = ["Cardiology","Neurology","Orthopedics","Pediatrics","Ophthalmology","Pulmonology","Dermatology","General","Oncology","ENT","Urology","Psychiatry"];
 const COLORS = ["#3b82f6","#8b5cf6","#10b981","#f59e0b","#ef4444","#06b6d4","#ec4899","#14b8a6"];
 const navItems = [
-    {id:"dashboard",icon:"⊞",  label:"Dashboard"},
+    {id:"dashboard",icon:"🕹️",  label:"Dashboard"},
     {id:"homepage", icon:"🌐", label:"Homepage"},
     {id:"doctors",  icon:"👨‍⚕️",label:"Doctors"},
     {id:"patients", icon:"👥", label:"Patients"},
