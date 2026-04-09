@@ -8,7 +8,10 @@ const { getDoctors, addDoctor, editDoctor, deleteDoctor, toggleDoctorStatus } = 
 const { getPatients, editPatient, deletePatient, togglePatientStatus }        = require('../controllers/patientController');
 const { getStats, getHomepage, updateHomepage, getAdmins, addAdmin, deleteAdmin } = require('../controllers/adminController');
 
-// Sab routes admin only
+// ✅ FIX: Homepage GET is PUBLIC (no auth needed)
+router.get('/homepage', getHomepage);
+
+// ── Protected Routes (Admin Only) ────────────
 router.use(protect, roleOnly('admin'));
 
 // ── Doctors ───────────────────────────────────
@@ -27,9 +30,8 @@ router.patch ('/patients/:id/status', togglePatientStatus);
 // ── Stats ─────────────────────────────────────
 router.get('/stats', getStats);
 
-// ── Homepage ──────────────────────────────────
-router.get('/homepage', getHomepage);
-router.put('/homepage',  updateHomepage);
+// ── Homepage UPDATE (Admin Only) ──────────────
+router.put('/homepage', updateHomepage);
 
 // ── Admins ────────────────────────────────────
 router.get   ('/admins',     getAdmins);

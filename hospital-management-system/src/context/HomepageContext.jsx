@@ -76,25 +76,24 @@ const HomepageContext = createContext(null);
 
 export function HomepageProvider({ children }) {
   const [state, setState] = useState(defaultState);
-  const [loaded, setLoaded] = useState(false); // ← loading track karne ke liye
+  const [loaded, setLoaded] = useState(false);
 
-  // ✅ FIX: App open hote hi DB se data load karo
+  // ✅ FIX: Homepage PUBLIC hai - bina token ke bhi load karo
   useEffect(() => {
     const loadFromDB = async () => {
       try {
-        const token = localStorage.getItem("hospital_token");
-        const res = await fetch(`${API}/homepage`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await fetch(`${API}/homepage`);
         const data = await res.json();
 
         if (data.success && data.content) {
-          // DB ka saved data use karo, defaultState ko override karo
+          console.log("✅ Homepage data loaded from database");
           setState(prev => ({ ...prev, ...data.content }));
+        } else {
+          console.log("ℹ️ Using default homepage data");
         }
       } catch (err) {
-        console.error("Homepage load error:", err);
-        // Error pe defaultState rehne do — koi problem nahi
+        console.error("❌ Homepage load error:", err);
+        console.log("ℹ️ Using default homepage data");
       } finally {
         setLoaded(true);
       }
@@ -119,8 +118,23 @@ export function HomepageProvider({ children }) {
   const removeItem = (key, index) =>
     setState(prev => ({ ...prev, [key]: prev[key].filter((_, i) => i !== index) }));
 
-  // Optional: loading hone tak children render mat karo
-  if (!loaded) return null;
+  // Loading screen (optional - agar nahi chahiye toh comment kar do)
+  if (!loaded) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        background: '#f0f4ff'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🏥</div>
+          <div style={{ fontSize: 14, color: '#64748b' }}>Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <HomepageContext.Provider value={{ state, update, updateNested, addItem, removeItem }}>
