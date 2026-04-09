@@ -259,7 +259,7 @@ export default function PatientModule() {
             {sidebarOpen && <div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:40}}/>}
 
             {/* ══ SIDEBAR ══ */}
-            <div style={{width:210,background:"linear-gradient(180deg,#0d4f4f,#0a3d3d)",flexShrink:0,display:"flex",flexDirection:"column",padding:"20px 0",position:"fixed",top:0,left:0,bottom:0,zIndex:50}} className="pt-sidebar">
+            <div style={{width:210,background:"linear-gradient(180deg,#0d4f4f,#0a3d3d)",flexShrink:0,display:"flex",flexDirection:"column",padding:"20px 0",position:"fixed",top:0,left:0,bottom:0,zIndex:50,transform:sidebarOpen?"translateX(0)":"",transition:"transform 0.25s ease"}} className="pt-sidebar">
                 {/* Logo */}
                 <div style={{display:"flex",alignItems:"center",gap:10,padding:"0 16px 20px",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
                     <div style={{width:36,height:36,background:"#14b8a6",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:"white"}}>✚</div>
