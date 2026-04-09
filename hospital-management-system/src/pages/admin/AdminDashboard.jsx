@@ -354,7 +354,7 @@ export default function AdminDashboard() {
             {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:40}}/>}
 
             {/* ══ SIDEBAR ══ */}
-            <div style={{width:220,flexShrink:0,background:"linear-gradient(180deg,#1e1b4b 0%,#312e81 60%,#1e1b4b 100%)",display:"flex",flexDirection:"column",padding:"24px 0 20px",position:"fixed",top:0,left:0,bottom:0,zIndex:50}} className="adm-sidebar">
+            <div style={{width:220,flexShrink:0,background:"linear-gradient(180deg,#1e1b4b 0%,#312e81 60%,#1e1b4b 100%)",display:"flex",flexDirection:"column",padding:"24px 0 20px",position:"fixed",top:0,left:0,bottom:0,zIndex:50,transform:sidebarOpen?"translateX(0)":"",transition:"transform 0.25s ease"}} className="adm-sidebar">
                 <div style={{padding:"0 20px 20px",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <div style={{width:38,height:38,borderRadius:10,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🏥</div>
