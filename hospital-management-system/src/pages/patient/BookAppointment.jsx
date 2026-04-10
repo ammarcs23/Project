@@ -817,7 +817,7 @@ export default function BookAppointment() {
                     .expand-grid{display:flex;flex-direction:column;gap:12px;}
                     .slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
                     .confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-                    .expand-grid{display:flex;flexDirection:column;gap:12px;}
+                    .expand-grid{display:flex;flex-direction:column;gap:12px;}
                     .step-label{display:none !important;}
                     .full-w{width:100%;}
                 }
