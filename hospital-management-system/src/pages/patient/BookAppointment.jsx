@@ -812,8 +812,9 @@ export default function BookAppointment() {
                 }
                 @media(max-width:768px){
                     .spec-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-                    .dr-pick-grid{display:flex;flexDirection:column;gap:10px;}
-                    .form-grid{display:flex;flexDirection:column;gap:14px;}
+                    .dr-pick-grid{display:flex;flex-direction:column;gap:10px;}
+                    .form-grid{display:flex;flex-direction:column;gap:14px;}
+                    .expand-grid{display:flex;flex-direction:column;gap:12px;}
                     .slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
                     .confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
                     .expand-grid{display:flex;flexDirection:column;gap:12px;}
