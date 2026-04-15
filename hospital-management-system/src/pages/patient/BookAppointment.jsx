@@ -837,3 +837,4 @@ const lbSt  = {fontSize:12,fontWeight:700,color:"#475569",marginBottom:6,display
 const inSt  = {padding:"10px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,outline:"none",background:"#f8fafc",color:"#1e293b",width:"100%",boxSizing:"border-box"};
 const primBtn={background:"linear-gradient(120deg,#0d4f4f,#14b8a6)",color:"white",border:"none",borderRadius:12,padding:"12px 24px",fontWeight:700,fontSize:14,cursor:"pointer"};
 const outBtn ={background:"white",color:"#64748b",border:"2px solid #e2e8f0",borderRadius:12,padding:"12px 20px",fontWeight:700,fontSize:13,cursor:"pointer"};
+// Just Adding Commits
