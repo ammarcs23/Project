@@ -81,7 +81,7 @@ export default function Signup1() {
   const handleSubmit = async e => {
     e.preventDefault(); setError("");
     if(!form.email||!form.password){setError("Email and password required.");return;}
-    if(mode==="register"&&!form.name){setError("Full name required.");return;}
+    if(mode==="register"&&form.name.trim().length<2){setError("Please enter your full name.");return;}
     if(mode==="login"&&role==="Doctor"&&!form.doctorId){setError("Doctor ID required.");return;}
     setLoading(true);
     try {
@@ -235,7 +235,7 @@ export default function Signup1() {
                 {role==="Patient"&&<button className={`sl-tab ${mode==="register"?"active":""}`} onClick={()=>{setMode("register");setError("");}}>Register</button>}
               </div>
               <form className="sl-form" onSubmit={handleSubmit}>
-                {mode==="register"&&<div className="sl-field"><label>Full Name</label><input type="text" placeholder="John Smith" value={form.name} onChange={set("name")}/></div>}
+                {mode==="register"&&<div className="sl-field"><label>Full Name</label><input type="text" placeholder="John Smith" value={form.name} onChange={e=>{ if(/^[a-zA-Z\s]*$/.test(e.target.value)) set("name")(e); }}/></div>}
                 <div className="sl-field"><label>Email Address</label><input type="email" placeholder="you@example.com" value={form.email} onChange={set("email")}/></div>
                 <div className="sl-field">
   <label>Password</label>
