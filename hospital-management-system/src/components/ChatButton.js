@@ -128,7 +128,7 @@ const ChatButton = () => {
                         <div className="chat-header">
                             <div className="chat-header-info">
                                 <h4>MediBot AI Assistant</h4>
-                                <p>🟢 Online · Powered by Gemini AI</p>
+                                <p>AI Model</p>
                             </div>
                             <button className="close-chat" onClick={toggleChat}>
                                 <FaTimes />

@@ -479,3 +479,52 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 
 SELECT 'chat_messages table created!' as status;
+
+
+
+
+SELECT COUNT(*) FROM appointments;
+
+SELECT COUNT(*) FROM patients;
+
+SELECT * FROM appointments ORDER BY id DESC LIMIT 5;
+
+
+
+SELECT a.id, a.patient_id, a.doctor_id, a.date, a.status, 
+       p.id as patient_exists
+FROM appointments a
+LEFT JOIN patients p ON a.patient_id = p.id
+ORDER BY a.id DESC LIMIT 5;
+
+
+
+
+SELECT d.id, d.doctor_id, u.name, u.email 
+FROM doctors d 
+JOIN users u ON d.user_id = u.id;
+
+
+
+SELECT d.id, d.doctor_id, u.name 
+FROM doctors d 
+JOIN users u ON d.user_id = u.id 
+WHERE d.id = 4;
+
+
+SELECT a.*, u.name as patient_name 
+FROM appointments a
+LEFT JOIN patients p ON a.patient_id = p.id
+LEFT JOIN users u ON p.user_id = u.id
+WHERE a.doctor_id = 4;
+
+
+
+
+use hospital_db;
+
+-- Check table exists
+SHOW TABLES LIKE 'homepage_content';
+
+-- Check data
+SELECT * FROM homepage_content;
