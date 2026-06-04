@@ -6,7 +6,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HomepageProvider } from './context/HomepageContext';
 import ProtectedRoute      from './components/Protectedroute.jsx';
 import AnnouncementBanner  from './components/AnnouncementBanner';
-import WelcomePopup        from './components/WelcomePopup';
+import WelcomePopup        from './components/Welcomepopup.jsx';
 
 import ContactSection  from './components/ContactSection';
 import DoctorsSection  from './components/DoctorsSection';
