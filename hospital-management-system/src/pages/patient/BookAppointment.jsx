@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 const API   = "http://localhost:5000/api";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_KEY = "";
+const GROQ_KEY = "";//api key will  be added later
 
 const getToken = () => localStorage.getItem("hospital_token_patient");
 
