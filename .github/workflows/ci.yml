@@ -193,12 +193,14 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: hospital-management-system/package-lock.json  # ✅ FIXED
 
       - name: Install frontend dependencies
+        working-directory: hospital-management-system  # ✅ FIXED
         run: npm install
 
       - name: Create frontend .env
+        working-directory: hospital-management-system  # ✅ FIXED
         run: |
           cat > .env << EOF
           REACT_APP_GROQ_KEY=dummy_key_for_build
@@ -206,15 +208,16 @@ jobs:
           EOF
 
       - name: Build React app
+        working-directory: hospital-management-system  # ✅ FIXED
         run: npm run build
         env:
           CI: false
 
       - name: Check build output exists
         run: |
-          if [ -d "build" ]; then
+          if [ -d "hospital-management-system/build" ]; then  # ✅ FIXED
             echo "✅ Build folder exists!"
-            ls -la build/
+            ls -la hospital-management-system/build/
           else
             echo "❌ Build folder missing!"
             exit 1
@@ -224,7 +227,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: react-build
-          path: build/
+          path: hospital-management-system/build/  # ✅ FIXED
           retention-days: 7
 
   # ─────────────────────────────────────────
@@ -242,18 +245,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: hospital-management-system/package-lock.json  # ✅ FIXED
 
       - name: Install frontend deps
+        working-directory: hospital-management-system  # ✅ FIXED
         run: npm install
 
       - name: Check for ESLint errors
+        working-directory: hospital-management-system  # ✅ FIXED
         run: npm run lint --if-present || echo "No lint script — skipping"
 
       - name: Check package.json exists (Frontend)
         run: |
-          if [ -f "package.json" ]; then
+          if [ -f "hospital-management-system/package.json" ]; then  # ✅ FIXED
             echo "✅ Frontend package.json found"
-            cat package.json | grep '"name"'
+            cat hospital-management-system/package.json | grep '"name"'
           fi
 
       - name: Check package.json exists (Backend)
