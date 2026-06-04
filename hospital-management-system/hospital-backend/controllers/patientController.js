@@ -2,7 +2,7 @@
 const db = require('../config/db');
 
 // ══════════════════════════════════════════════
-//  ADMIN — PATIENT CRUD
+//  ADMIN — PATIENT CRUD Options
 // ══════════════════════════════════════════════
 
 const getPatients = async (req, res) => {
